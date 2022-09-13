@@ -43,19 +43,23 @@ class ProfileFragment : Fragment() {
         navArgs.userInfo?.let { other ->
             currentUser?.let { current ->
                 binding.infoText.text = other.toString()
-                observeReq(current, other)
-                viewModel.getRequestState(current, other)
-                viewModel.addRequestSnapshot(current, other)
+                observeSentReq(current, other)
+                viewModel.getSentRequestState(current, other)
+                viewModel.addSentRequestSnapshot(current, other)
+                observeReceived(current, other)
+                viewModel.getReceivedRequestState(current, other)
+                viewModel.addReceivedRequestSnapshot(current, other)
+
             }
         } ?: "This User Doesn't Exist or Info Not Available "
         /** You could display the current user info*/
     }
 
-    private fun observeReq(currentUser: FirebaseUser, otherUser: UserBody) {
+    private fun observeSentReq(currentUser: FirebaseUser, otherUser: UserBody) {
         lifecycleScope.launch {
 
 
-            viewModel.requestStatus.collect { resource ->
+            viewModel.sentRequestStatus.collect { resource ->
                 when (resource) {
                     is RequestState.Loading -> {
                         //show Loading
@@ -71,12 +75,6 @@ class ProfileFragment : Fragment() {
                         showError(false)
                         showBtn(false)
                         binding.statusText.text = resource.data.toString()
-                        showHandler(true)
-                        binding.acceptBtn.setOnClickListener {
-                            viewModel.handleRequest(currentUser, otherUser, true)
-                        }
-                        binding.declineBtn.setOnClickListener { }
-                        viewModel.handleRequest(currentUser, otherUser, false)
 
                     }
                     is RequestState.Failure -> {
@@ -94,6 +92,7 @@ class ProfileFragment : Fragment() {
                         showBtn(true)
                         showHandler(false)
                         showError(true, "Request doesn't exist")
+                        binding.statusText.text = "Request Doesn't Exist"
                         binding.sendBtn.setOnClickListener {
                             val reqBody = RequestBody(
                                 "${currentUser.email} requesting friendship from ${otherUser.email}",
@@ -111,6 +110,50 @@ class ProfileFragment : Fragment() {
         }
 
     }
+
+
+    private fun observeReceived(currentUser: FirebaseUser, otherUser: UserBody) {
+        lifecycleScope.launch {
+            viewModel.receivedRequestStatus.collect { resource ->
+                when (resource) {
+                    is RequestState.Loading -> {
+                        binding.receivedText.text = "<<<Loading>>>"
+                        showHandler(false)
+                    }
+                    is RequestState.Successful -> {
+                        binding.receivedText.text = resource.data.toString()
+                        if(resource.data){
+                            showHandler(false)
+                        }else{
+                            showHandler(true)
+                            binding.acceptBtn.setOnClickListener {
+                                viewModel.handleRequest(currentUser, otherUser, true)
+                            }
+                            binding.declineBtn.setOnClickListener {
+                                viewModel.handleRequest(
+                                    currentUser,
+                                    otherUser,
+                                    false
+                                )
+                            }
+                        }
+
+
+
+                    }
+                    is RequestState.Failure -> {
+                        binding.receivedText.text = resource.msg
+                        showHandler(false)
+                    }
+                    is RequestState.NonExistent -> {
+                        binding.receivedText.text = "Request Doesn't Exist"
+                        showHandler(false)
+                    }
+                }
+            }
+        }
+    }
+
 
     private fun showError(state: Boolean, text: String = "") {
         binding.errorText.isVisible = state

@@ -25,18 +25,50 @@
         android:id="@+id/statusText"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
         android:padding="5dp"
-        app:layout_constraintEnd_toEndOf="@+id/infoText"
-        app:layout_constraintStart_toStartOf="@+id/infoText"
-        app:layout_constraintTop_toBottomOf="@+id/infoText"
+        app:layout_constraintBottom_toBottomOf="@+id/sentHolder"
+        app:layout_constraintStart_toEndOf="@+id/sentHolder"
+        app:layout_constraintTop_toTopOf="@+id/sentHolder"
         tools:text="Request Status Here" />
+
+
+    <com.google.android.material.textview.MaterialTextView
+        android:id="@+id/receivedText"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:padding="5dp"
+        app:layout_constraintBottom_toBottomOf="@+id/receivedHolder"
+        app:layout_constraintStart_toEndOf="@+id/receivedHolder"
+        app:layout_constraintTop_toTopOf="@+id/receivedHolder"
+        tools:text="Request Status Here" />
+
+    <com.google.android.material.textview.MaterialTextView
+        android:id="@+id/receivedHolder"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="68dp"
+        android:layout_marginTop="90dp"
+        android:padding="5dp"
+        android:text="Received Status::"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/sentHolder" />
+
+    <com.google.android.material.textview.MaterialTextView
+        android:id="@+id/sentHolder"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="24dp"
+        android:padding="5dp"
+        android:text="Sent Status::"
+        app:layout_constraintStart_toStartOf="@+id/infoText"
+        app:layout_constraintTop_toBottomOf="@+id/infoText" />
 
     <com.google.android.material.button.MaterialButton
         android:id="@+id/sendBtn"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
+        android:layout_marginTop="16dp"
         android:layout_marginEnd="32dp"
         android:text="send"
         android:visibility="invisible"
@@ -47,21 +79,21 @@
         android:id="@+id/acceptBtn"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginStart="8dp"
-        android:layout_marginTop="8dp"
+        android:layout_marginStart="12dp"
+        android:layout_marginTop="16dp"
         android:text="Accept"
         app:layout_constraintStart_toEndOf="@+id/declineBtn"
-        app:layout_constraintTop_toBottomOf="@+id/statusText" />
+        app:layout_constraintTop_toBottomOf="@+id/receivedHolder" />
 
     <com.google.android.material.button.MaterialButton
         android:id="@+id/declineBtn"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginStart="16dp"
         android:text="Decline"
         app:layout_constraintBottom_toBottomOf="@+id/acceptBtn"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="@+id/acceptBtn" />
+        app:layout_constraintStart_toStartOf="@+id/receivedHolder"
+        app:layout_constraintTop_toTopOf="@+id/acceptBtn"
+        app:layout_constraintVertical_bias="1.0" />
 
     <ProgressBar
         android:id="@+id/progressBar"

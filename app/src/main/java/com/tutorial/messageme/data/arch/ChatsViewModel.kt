@@ -13,14 +13,12 @@ import com.tutorial.messageme.data.models.RequestBody
 import com.tutorial.messageme.data.models.UserBody
 import com.tutorial.messageme.data.utils.*
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.launch
-import java.lang.Exception
 import javax.inject.Inject
 
 @HiltViewModel
@@ -45,8 +43,8 @@ class ChatsViewModel @Inject constructor(private val repository: ChatsRepository
     private val _userRequestState = MutableStateFlow<RequestState>(RequestState.Loading)
     val userRequestState = _userRequestState.asStateFlow()
 
-    private val _requestStatus = MutableStateFlow<RequestState>(RequestState.NonExistent)
-    val requestStatus = _requestStatus.asStateFlow()
+    private val _sentRequestStatus = MutableStateFlow<RequestState>(RequestState.Loading)
+    val sentRequestStatus = _sentRequestStatus.asStateFlow()
 
     //region NO_REPOSITORY
 
@@ -130,7 +128,7 @@ class ChatsViewModel @Inject constructor(private val repository: ChatsRepository
         val requestId = currentUser.uid + otherUser.uid
 
         viewModelScope.launch {
-            checkRequest(currentUser, otherUser).collect { exists ->
+            checkSentRequest(currentUser, otherUser).collect { exists ->
                 when {
                     exists -> {
                         Log.d("me_req", "req sent not sent..it exists already ")
@@ -160,15 +158,15 @@ class ChatsViewModel @Inject constructor(private val repository: ChatsRepository
     }
 
 
-    private fun checkRequest(currentUser: FirebaseUser, otherUser: UserBody): Flow<Boolean> {
+    private fun checkSentRequest(currentUser: FirebaseUser, otherUser: UserBody): Flow<Boolean> {
         return callbackFlow {
             fStoreReq.document(currentUser.uid).collection(SENT_REQUEST)
                 .whereEqualTo("senderId", currentUser.uid)
                 .whereEqualTo("receiverId", otherUser.uid)
                 .get().addOnCompleteListener { req ->
-                    when{
-                        req.isSuccessful->{
-                            if ( !req.result.isEmpty ) {
+                    when {
+                        req.isSuccessful -> {
+                            if (!req.result.isEmpty) {
                                 trySend(true)
                                 Log.d("me_checkIfReqExists", true.toString())
                                 return@addOnCompleteListener
@@ -177,7 +175,7 @@ class ChatsViewModel @Inject constructor(private val repository: ChatsRepository
                             Log.d("me_checkIfReqExists", false.toString())
 
                         }
-                        else->{
+                        else -> {
                             trySend(false)
                             Log.d("me_checkIfReqExists", "${req.exception}")
                         }
@@ -188,11 +186,38 @@ class ChatsViewModel @Inject constructor(private val repository: ChatsRepository
             awaitClose()
         }
     }
+    private fun checkReceivedRequest(currentUser: FirebaseUser, otherUser: UserBody): Flow<Boolean> {
+        return callbackFlow {
+            fStoreReq.document(currentUser.uid).collection(RECEIVED_REQUEST)
+                .whereEqualTo("senderId", otherUser.uid)
+                .whereEqualTo("receiverId", currentUser.uid)
+                .get().addOnCompleteListener { req ->
+                    when {
+                        req.isSuccessful -> {
+                            if (!req.result.isEmpty) {
+                                trySend(true)
+                                Log.d("me_Rec_checkIfReqExists", true.toString())
+                                return@addOnCompleteListener
+                            }
+                            trySend(false)
+                            Log.d("me_Rec_checkIfReqExists", false.toString())
 
-    fun getRequestState(currentUser: FirebaseUser, otherUser: UserBody) {
-        _requestStatus.value = RequestState.Loading
-        viewModelScope.launch(Dispatchers.Default) {
-            checkRequest(currentUser, otherUser).collect { exists ->
+                        }
+                        else -> {
+                            trySend(false)
+                            Log.d("me_Rec_checkIfReqExists", "${req.exception}")
+                        }
+                    }
+
+
+                }
+            awaitClose()
+        }
+    }
+
+    fun getSentRequestState(currentUser: FirebaseUser, otherUser: UserBody) {
+        viewModelScope.launch {
+            checkSentRequest(currentUser, otherUser).collect { exists ->
                 when {
                     exists -> {
                         fStoreReq.document(currentUser.uid).collection(SENT_REQUEST)
@@ -202,13 +227,15 @@ class ChatsViewModel @Inject constructor(private val repository: ChatsRepository
 
                                 if (req.isComplete) {
                                     try {
-                                        val request = req.result.documents[0].toObject<RequestBody>()
+                                        val request =
+                                            req.result.documents[0].toObject<RequestBody>()
                                         request?.let {
-                                            _requestStatus.value = RequestState.Successful(it.status)
-                                        }?: RequestState.Successful(false)
+                                            _sentRequestStatus.value =
+                                                RequestState.Successful(it.status)
+                                        } ?: RequestState.Successful(false)
                                         Log.d("me_checkRequestState", "reqList -->$request")
 
-                                    }catch (e:Exception){
+                                    } catch (e: Exception) {
                                         Log.d("me_checkRequestState", "exception -->$e")
                                     }
 
@@ -216,21 +243,20 @@ class ChatsViewModel @Inject constructor(private val repository: ChatsRepository
                                 }
 
                                 Log.d("me_checkRequestState", "${req.exception}")
-                                _requestStatus.value =
+                                _sentRequestStatus.value =
                                     RequestState.Failure("An Error Occurred ${req.exception}")
 
                             }
                     }
                     else -> {
                         Log.d("me_checkRequestState", "NON_EXISTENT")
-                        _requestStatus.value = RequestState.NonExistent
+                        _sentRequestStatus.value = RequestState.NonExistent
                     }
                 }
 
             }
         }
     }
-
 
 
     fun sendMessage(currentUser: FirebaseUser, otherUser: UserBody, message: ChatMessage) {
@@ -362,7 +388,6 @@ class ChatsViewModel @Inject constructor(private val repository: ChatsRepository
     //endregion
 
 
-
     private val _allFriendsState = MutableStateFlow<Resource<List<UserBody>>>(Resource.Loading())
     val allFriendsState = _allFriendsState.asStateFlow()
 
@@ -421,9 +446,9 @@ class ChatsViewModel @Inject constructor(private val repository: ChatsRepository
                 when (it) {
                     is Resource.Successful -> {
                         it.data?.let { users ->
-                            acceptedReq.forEach { req->
-                                users.forEach { user->
-                                    if (req == user.uid){
+                            acceptedReq.forEach { req ->
+                                users.forEach { user ->
+                                    if (req == user.uid) {
                                         friendsList.add(user)
                                     }
                                 }
@@ -439,45 +464,52 @@ class ChatsViewModel @Inject constructor(private val repository: ChatsRepository
             }
 
 
-
         }
     }
 
-    fun handleRequest(currentUser: FirebaseUser,otherUser: UserBody,state:Boolean){
+    fun handleRequest(currentUser: FirebaseUser, otherUser: UserBody, state: Boolean) {
         viewModelScope.launch {
-            val requestId = currentUser.uid + otherUser.uid
-            val otherId = otherUser.uid + currentUser.uid
+            val requestId = otherUser.uid + currentUser.uid
 
-            if (state){
+            if (state) {
                 //Accepted
-                fStoreReq.document(currentUser.uid).collection(RECEIVED_REQUEST).document(otherId).update(
-                    "status",state
-                ).addOnCompleteListener {
-                    if (it.isSuccessful){
-                        val user = UserBody(
-                            uid = otherUser.uid,
-                            userName = otherUser.userName,
-                            fName = otherUser.fName,
-                            lName = otherUser.lName,
-                            phoneNo = otherUser.phoneNo,
-                            email = otherUser.email,
-                            displayImg = otherUser.displayImg,
-                            userStatus = otherUser.userStatus,
-                            dob = otherUser.dob,
-                            gender = otherUser.gender
-                        )
-                        fStoreReq.document(currentUser.uid).collection(ACCEPTED_REQUEST).document(otherUser.uid).set(user)
-                        fStoreReq.document(otherUser.uid).collection(SENT_REQUEST).document(requestId).update(
-                            "status",state
-                        )
-                    }
-                }
+                fStoreReq.document(currentUser.uid).collection(RECEIVED_REQUEST).document(requestId)
+                    .update(
+                        "status", state
+                    ).addOnCompleteListener {
+                        if (it.isSuccessful) {
+                            val user = UserBody(
+                                uid = otherUser.uid,
+                                userName = otherUser.userName,
+                                fName = otherUser.fName,
+                                lName = otherUser.lName,
+                                phoneNo = otherUser.phoneNo,
+                                email = otherUser.email,
+                                displayImg = otherUser.displayImg,
+                                userStatus = otherUser.userStatus,
+                                dob = otherUser.dob,
+                                gender = otherUser.gender
+                            )
 
-            }else{
+                            fStoreReq.document(otherUser.uid).collection(SENT_REQUEST)
+                                .document(requestId).update(
+                                    "status", state
+                                )
+                            fStoreReq.document(currentUser.uid).collection(ACCEPTED_REQUEST)
+                                .document(otherUser.uid).set(user)
+                            fStoreReq.document(otherUser.uid).collection(ACCEPTED_REQUEST)
+                                .document(currentUser.uid).set(user)
+                        }
+                    }
+
+            } else {
                 //Decline and delete
-                fStoreReq.document(currentUser.uid).collection(RECEIVED_REQUEST).document(otherId).delete().addOnCompleteListener {
-                    fStoreReq.document(otherUser.uid).collection(SENT_REQUEST).document(requestId).delete()
-                }
+                fStoreReq.document(currentUser.uid).collection(RECEIVED_REQUEST).document(requestId)
+                    .delete().addOnCompleteListener {
+                        fStoreReq.document(otherUser.uid).collection(SENT_REQUEST)
+                            .document(requestId)
+                            .delete()
+                    }
 
             }
 
@@ -485,22 +517,83 @@ class ChatsViewModel @Inject constructor(private val repository: ChatsRepository
         }
     }
 
-    fun addRequestSnapshot(currentUser: FirebaseUser,otherUser:UserBody){
+
+    private val _receivedRequestStatus = MutableStateFlow<RequestState>(RequestState.Loading)
+    val receivedRequestStatus = _receivedRequestStatus.asStateFlow()
+    fun getReceivedRequestState(currentUser: FirebaseUser, otherUser: UserBody) {
+        _receivedRequestStatus.value = RequestState.Loading
+        viewModelScope.launch {
+            checkReceivedRequest(currentUser, otherUser).collect { exists ->
+                when {
+                    exists -> {
+                        fStoreReq.document(currentUser.uid).collection(RECEIVED_REQUEST)
+                            .whereEqualTo("senderId", otherUser.uid)
+                            .whereEqualTo("receiverId", currentUser.uid)
+                            .get().addOnCompleteListener { req ->
+
+                                if (req.isComplete) {
+                                    try {
+                                        val request =
+                                            req.result.documents[0].toObject<RequestBody>()
+                                        request?.let {
+                                            _receivedRequestStatus.value =
+                                                RequestState.Successful(it.status)
+                                        } ?: RequestState.Successful(false)
+                                        Log.d("me_receivedRequestState", "receivedReqList -->$request")
+
+                                    } catch (e: Exception) {
+                                        Log.d("me_receivedRequestState", "exception -->$e")
+                                    }
+
+                                    return@addOnCompleteListener
+                                }
+
+                                Log.d("me_receivedRequestState", "${req.exception}")
+                                _receivedRequestStatus.value =
+                                    RequestState.Failure("An Error Occurred ${req.exception}")
+
+                            }
+                    }
+                    else -> {
+                        Log.d("me_receivedRequestState", "NON_EXISTENT")
+                        _receivedRequestStatus.value = RequestState.NonExistent
+                    }
+                }
+
+            }
+        }
+    }
+
+
+    fun addSentRequestSnapshot(currentUser: FirebaseUser, otherUser: UserBody) {
         fStoreReq.document(currentUser.uid).collection(SENT_REQUEST)
             .whereEqualTo("senderId", currentUser.uid)
             .whereEqualTo("receiverId", otherUser.uid).addSnapshotListener { value, error ->
                 if (error != null) {
-                    Log.w("me_requestSnapshot", "Listen failed. $error" )
+                    Log.d("me_sentRequestSnapshot", "Listen failed. $error")
                     return@addSnapshotListener
                 }
-                getRequestState(currentUser, otherUser)
+                Log.d("me_sentRequestSnapshot", "Listen failed. $error")
+                getSentRequestState(currentUser, otherUser)
 
             }
 
     }
 
+    fun addReceivedRequestSnapshot(currentUser: FirebaseUser, otherUser: UserBody) {
+        fStoreReq.document(currentUser.uid).collection(RECEIVED_REQUEST)
+            .whereEqualTo("senderId", otherUser.uid)
+            .whereEqualTo("receiverId", currentUser.uid).addSnapshotListener { value, error ->
+                if (error != null) {
+                    Log.d("me_rec_RequestSnapshot", "Listen failed. $error")
+                    return@addSnapshotListener
+                }
+                Log.d("me_rec_RequestSnapshot", "Listen failed. $error")
+                getReceivedRequestState(currentUser, otherUser)
 
+            }
 
+    }
 
 
 }
