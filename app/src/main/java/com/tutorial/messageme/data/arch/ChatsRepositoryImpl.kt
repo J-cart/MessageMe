@@ -119,7 +119,7 @@ class ChatsRepositoryImpl : ChatsRepository {
                 .whereEqualTo("senderId", currentUserUid)
                 .whereEqualTo("receiverId", otherUserUid)
                 .get().addOnCompleteListener {
-                    if (!it.result.isEmpty || it.result != null) {
+                    if (!it.result.isEmpty ) {
                         trySend(true)
                         return@addOnCompleteListener
                     }

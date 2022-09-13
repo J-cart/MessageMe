@@ -11,7 +11,6 @@ import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.navArgs
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.ktx.auth
-import com.google.firebase.firestore.auth.User
 import com.google.firebase.ktx.Firebase
 import com.tutorial.messageme.data.arch.ChatsViewModel
 import com.tutorial.messageme.data.models.RequestBody
@@ -44,16 +43,17 @@ class ProfileFragment : Fragment() {
         navArgs.userInfo?.let { other ->
             currentUser?.let { current ->
                 binding.infoText.text = other.toString()
-                observeReq(current,other)
+                observeReq(current, other)
                 viewModel.getRequestState(current, other)
-                viewModel.addRequestSnapshot(current,other)
+                viewModel.addRequestSnapshot(current, other)
             }
         } ?: "This User Doesn't Exist or Info Not Available "
         /** You could display the current user info*/
     }
 
-    private fun observeReq(currentUser:FirebaseUser,otherUser: UserBody) {
+    private fun observeReq(currentUser: FirebaseUser, otherUser: UserBody) {
         lifecycleScope.launch {
+
 
             viewModel.requestStatus.collect { resource ->
                 when (resource) {
@@ -62,20 +62,28 @@ class ProfileFragment : Fragment() {
                         showLoading(true)
                         showBtn(false)
                         showError(false)
+                        showHandler(false)
                         binding.statusText.text = "<<<Loading>>>"
 
                     }
                     is RequestState.Successful -> {
                         showLoading(false)
                         showError(false)
-                        showBtn(true)
+                        showBtn(false)
                         binding.statusText.text = resource.data.toString()
+                        showHandler(true)
+                        binding.acceptBtn.setOnClickListener {
+                            viewModel.handleRequest(currentUser, otherUser, true)
+                        }
+                        binding.declineBtn.setOnClickListener { }
+                        viewModel.handleRequest(currentUser, otherUser, false)
 
                     }
                     is RequestState.Failure -> {
 
                         showLoading(false)
                         showBtn(true)
+                        showHandler(false)
                         showError(true, resource.msg)
                     }
                     is RequestState.NonExistent -> {
@@ -84,6 +92,7 @@ class ProfileFragment : Fragment() {
                         //2. check request state
                         showLoading(false)
                         showBtn(true)
+                        showHandler(false)
                         showError(true, "Request doesn't exist")
                         binding.sendBtn.setOnClickListener {
                             val reqBody = RequestBody(
@@ -92,8 +101,7 @@ class ProfileFragment : Fragment() {
                                 otherUser.uid,
                                 false
                             )
-                            viewModel.sender(currentUser,otherUser,reqBody)
-                            viewModel.getRequestState(currentUser, otherUser)
+                            viewModel.senderFriendRequest(currentUser, otherUser, reqBody)
                         }
                     }
                 }
@@ -115,6 +123,11 @@ class ProfileFragment : Fragment() {
 
     private fun showLoading(state: Boolean) {
         binding.progressBar.isVisible = state
+    }
+
+    private fun showHandler(state: Boolean) {
+        binding.acceptBtn.isVisible = state
+        binding.declineBtn.isVisible = state
     }
 
 
