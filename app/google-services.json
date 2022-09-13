@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "333318659665",
+    "project_id": "main-projects-f75ec",
+    "storage_bucket": "main-projects-f75ec.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:333318659665:android:ab6e3a9ca15cd83eb66270",
+        "android_client_info": {
+          "package_name": "com.tutorial.messageme"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "333318659665-0s9j0n2cq7v9cupund37qvbu9utq1ai2.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB6nycVG0aJkyH7GqglfNDAVYZVelqVN8c"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "333318659665-0s9j0n2cq7v9cupund37qvbu9utq1ai2.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

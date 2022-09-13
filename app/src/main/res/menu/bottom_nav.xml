@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <item
+        android:id="@+id/recentChatsFragment"
+        android:icon="@drawable/ic_home_24"
+        android:title="Chats"
+        app:showAsAction="always" />
+
+    <item
+        android:id="@+id/friendsFragment"
+        android:icon="@drawable/ic_favorite_24"
+        android:title="Friends"
+        app:showAsAction="always" />
+
+    <item
+        android:id="@+id/userProfileFragment"
+        android:icon="@drawable/ic_timeline_24"
+        android:title="Profile"
+        app:showAsAction="always" />
+
+</menu>

@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/main_navigation"
+    app:startDestination="@id/loginFragment">
+
+    <fragment
+        android:id="@+id/loginFragment"
+        android:name="com.tutorial.messageme.ui.LoginFragment"
+        android:label="fragment_login"
+        tools:layout="@layout/fragment_login">
+        <action
+            android:id="@+id/action_loginFragment_to_recentChatsFragment"
+            app:destination="@id/recentChatsFragment" />
+    </fragment>
+    <fragment
+        android:id="@+id/allUsersFragment"
+        android:name="com.tutorial.messageme.ui.AllUsersFragment"
+        android:label="fragment_all_users"
+        tools:layout="@layout/fragment_all_users">
+
+    </fragment>
+    <fragment
+        android:id="@+id/chatsFragment"
+        android:name="com.tutorial.messageme.ui.ChatsFragment"
+        android:label="fragment_chats"
+        tools:layout="@layout/fragment_chats" />
+    <fragment
+        android:id="@+id/editProfileFragment"
+        android:name="com.tutorial.messageme.ui.EditProfileFragment"
+        android:label="fragment_edit_profile"
+        tools:layout="@layout/fragment_edit_profile" />
+    <fragment
+        android:id="@+id/requestsFragment"
+        android:name="com.tutorial.messageme.ui.RequestsFragment"
+        android:label="fragment_friend_requests"
+        tools:layout="@layout/fragment_friend_requests" />
+    <fragment
+        android:id="@+id/friendsFragment"
+        android:name="com.tutorial.messageme.ui.FriendsFragment"
+        android:label="fragment_friends"
+        tools:layout="@layout/fragment_friends">
+        <action
+            android:id="@+id/action_friendsFragment_to_allUsersFragment"
+            app:destination="@id/allUsersFragment" />
+        <action
+            android:id="@+id/action_friendsFragment_to_chatsFragment"
+            app:destination="@id/chatsFragment" />
+
+        <action
+            android:id="@+id/action_friendsFragment_to_requestsFragment"
+            app:destination="@id/requestsFragment" />
+    </fragment>
+    <fragment
+        android:id="@+id/receivedRequestsFragment"
+        android:name="com.tutorial.messageme.ui.ReceivedRequestsFragment"
+        android:label="fragment_received_requests"
+        tools:layout="@layout/fragment_received_requests" />
+    <fragment
+        android:id="@+id/recentChatsFragment"
+        android:name="com.tutorial.messageme.ui.RecentChatsFragment"
+        android:label="fragment_recent_chats"
+        tools:layout="@layout/fragment_recent_chats">
+        <action
+            android:id="@+id/action_recentChatsFragment_to_friendsFragment"
+            app:destination="@id/friendsFragment" />
+        <action
+            android:id="@+id/action_recentChatsFragment_to_chatsFragment"
+            app:destination="@id/chatsFragment" />
+    </fragment>
+    <fragment
+        android:id="@+id/sentRequestsFragment"
+        android:name="com.tutorial.messageme.ui.SentRequestsFragment"
+        android:label="fragment_sent_requests"
+        tools:layout="@layout/fragment_sent_requests" />
+    <fragment
+        android:id="@+id/userProfileFragment"
+        android:name="com.tutorial.messageme.ui.UserProfileFragment"
+        android:label="fragment_user_profile"
+        tools:layout="@layout/fragment_user_profile">
+        <action
+            android:id="@+id/action_userProfileFragment_to_editProfileFragment"
+            app:destination="@id/editProfileFragment" />
+        <action
+            android:id="@+id/action_userProfileFragment_to_loginFragment"
+            app:destination="@id/loginFragment"
+            app:popUpTo="@id/loginFragment"
+            app:popUpToInclusive="true" />
+    </fragment>
+    <fragment
+        android:id="@+id/profileFragment"
+        android:name="com.tutorial.messageme.ui.ProfileFragment"
+        android:label="fragment_profile"
+        tools:layout="@layout/fragment_profile" >
+        <argument
+            android:name="userInfo"
+            app:argType="com.tutorial.messageme.data.models.UserBody"
+            app:nullable="true" />
+    </fragment>
+    <action
+        android:id="@+id/action_global_profileFragment"
+        app:destination="@id/profileFragment"
+        />
+</navigation>
