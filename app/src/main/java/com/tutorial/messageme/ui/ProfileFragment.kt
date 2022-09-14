@@ -44,10 +44,11 @@ class ProfileFragment : Fragment() {
             currentUser?.let { current ->
                 binding.infoText.text = other.toString()
                 observeSentReq(current, other)
-                viewModel.getSentRequestState(current, other)
+                viewModel.loadSentRequestState(current.uid, other.uid)
                 viewModel.addSentRequestSnapshot(current, other)
+
                 observeReceived(current, other)
-                viewModel.getReceivedRequestState(current, other)
+                viewModel.loadReceivedRequestState(current.uid, other.uid)
                 viewModel.addReceivedRequestSnapshot(current, other)
 
             }
@@ -64,7 +65,8 @@ class ProfileFragment : Fragment() {
                     is RequestState.Loading -> {
                         //show Loading
                         showLoading(true)
-                        showBtn(false)
+                        showSend(false)
+                        showCancel(false)
                         showError(false)
                         showHandler(false)
                         binding.statusText.text = "<<<Loading>>>"
@@ -73,15 +75,24 @@ class ProfileFragment : Fragment() {
                     is RequestState.Successful -> {
                         showLoading(false)
                         showError(false)
-                        showBtn(false)
+                        showSend(false)
                         binding.statusText.text = resource.data.toString()
+                        if (resource.data){
+                            showCancel(false)
+                        }else{
+                            showCancel(true)
+                            binding.cancelBtn.setOnClickListener {
+                                viewModel.cancelSentRequest(currentUser, otherUser)
+                            }
+                        }
 
                     }
                     is RequestState.Failure -> {
 
                         showLoading(false)
-                        showBtn(true)
+                        showSend(true)
                         showHandler(false)
+                        showCancel(false)
                         showError(true, resource.msg)
                     }
                     is RequestState.NonExistent -> {
@@ -89,8 +100,9 @@ class ProfileFragment : Fragment() {
                         // 1.show send btn and send request
                         //2. check request state
                         showLoading(false)
-                        showBtn(true)
+                        showSend(true)
                         showHandler(false)
+                        showCancel(false)
                         showError(true, "Request doesn't exist")
                         binding.statusText.text = "Request Doesn't Exist"
                         binding.sendBtn.setOnClickListener {
@@ -100,7 +112,7 @@ class ProfileFragment : Fragment() {
                                 otherUser.uid,
                                 false
                             )
-                            viewModel.senderFriendRequest(currentUser, otherUser, reqBody)
+                            viewModel.sendFriendRequest(currentUser, otherUser, reqBody)
                         }
                     }
                 }
@@ -122,22 +134,17 @@ class ProfileFragment : Fragment() {
                     }
                     is RequestState.Successful -> {
                         binding.receivedText.text = resource.data.toString()
-                        if(resource.data){
+                        if (resource.data) {
                             showHandler(false)
-                        }else{
+                        } else {
                             showHandler(true)
                             binding.acceptBtn.setOnClickListener {
-                                viewModel.handleRequest(currentUser, otherUser, true)
+                                viewModel.handleReceivedRequest(currentUser, otherUser, true)
                             }
                             binding.declineBtn.setOnClickListener {
-                                viewModel.handleRequest(
-                                    currentUser,
-                                    otherUser,
-                                    false
-                                )
+                                viewModel.handleReceivedRequest(currentUser, otherUser, false)
                             }
                         }
-
 
 
                     }
@@ -160,8 +167,12 @@ class ProfileFragment : Fragment() {
         binding.errorText.text = text
     }
 
-    private fun showBtn(state: Boolean) {
+    private fun showSend(state: Boolean) {
         binding.sendBtn.isVisible = state
+    }
+
+    private fun showCancel(state: Boolean) {
+        binding.cancelBtn.isVisible = state
     }
 
     private fun showLoading(state: Boolean) {

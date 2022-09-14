@@ -9,12 +9,32 @@ import com.tutorial.messageme.data.utils.Resource
 import kotlinx.coroutines.flow.Flow
 
 interface ChatsRepository {
-fun signUpNew(email:String,password:String):Flow<RequestState>
-fun loginUser(email: String,password: String):Flow<RequestState>
-fun sendFriendRequest(currentUser: String,otherUser:UserBody,requestBody: RequestBody):Flow<RequestState>
-fun checkFriendRequest(currentUserUid:String,otherUserUid: String):Flow<Boolean>
-fun getChatMessages(currentUser: String,otherUser: UserBody):Flow<Resource<List<ChatMessage>>>
-fun getAllUsers():Flow<Resource<List<UserBody>>>
-fun sendMessage(currentUser: String,otherUser: UserBody,message: ChatMessage):Flow<RequestState>
+    fun signUpNew(email: String, password: String): Flow<RequestState>
+    fun loginUser(email: String, password: String): Flow<RequestState>
+    fun sendFriendRequest(
+        currentUserUid: String,
+        otherUserUid: String,
+        requestBody: RequestBody
+    ): Flow<RequestState>
+
+    fun getChatMessages(currentUserUid: String, otherUserUid: String): Flow<Resource<List<ChatMessage>>>
+    fun getAllUsers(): Flow<Resource<List<UserBody>>>
+    fun sendMessage(
+        currentUserUid: String,
+        otherUserUid: String,
+        message: ChatMessage
+    ): Flow<RequestState>
+
+
+    fun getSentRequestState(currentUserUid: String, otherUserUid: String): Flow<RequestState>
+    fun addSentSnapshot(currentUser: FirebaseUser, otherUser: UserBody)
+    fun checkSentRequest(currentUserUid: String, otherUserUid: String): Flow<Boolean>
+
+    fun getReceivedRequestState(currentUserUid: String, otherUserUid: String): Flow<RequestState>
+    fun checkReceivedRequest(currentUserUid: String, otherUserUid: String): Flow<Boolean>
+    fun addReceivedSnapshot(currentUser: FirebaseUser, otherUser: UserBody)
+    fun handleReceivedRequest(currentUser: FirebaseUser, otherUser: UserBody, state:Boolean)
+
+    fun cancelSentRequest(currentUserUid: String, otherUserUid: String)
 
 }

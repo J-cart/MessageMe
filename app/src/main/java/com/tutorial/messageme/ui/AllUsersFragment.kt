@@ -56,7 +56,8 @@ class AllUsersFragment : Fragment() {
     }
 
     private suspend fun observeAllUsers(){
-        viewModel.getAllUsers()
+
+        viewModel.loadAllUsers()
         viewModel.allUsers.collect{resource->
             when(resource){
                 is Resource.Loading->{
