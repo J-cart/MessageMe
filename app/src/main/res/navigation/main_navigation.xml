@@ -25,7 +25,12 @@
         android:id="@+id/chatsFragment"
         android:name="com.tutorial.messageme.ui.ChatsFragment"
         android:label="fragment_chats"
-        tools:layout="@layout/fragment_chats" />
+        tools:layout="@layout/fragment_chats" >
+        <argument
+            android:name="otherUser"
+            app:argType="com.tutorial.messageme.data.models.UserBody"
+            app:nullable="true" />
+    </fragment>
     <fragment
         android:id="@+id/editProfileFragment"
         android:name="com.tutorial.messageme.ui.EditProfileFragment"

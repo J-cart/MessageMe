@@ -16,6 +16,7 @@ import com.tutorial.messageme.data.arch.ChatsViewModel
 import com.tutorial.messageme.data.models.RequestBody
 import com.tutorial.messageme.data.models.UserBody
 import com.tutorial.messageme.data.utils.RequestState
+import com.tutorial.messageme.data.utils.Resource
 import com.tutorial.messageme.databinding.FragmentProfileBinding
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
@@ -51,6 +52,9 @@ class ProfileFragment : Fragment() {
                 viewModel.loadReceivedRequestState(current.uid, other.uid)
                 viewModel.addReceivedRequestSnapshot(current, other)
 
+                viewModel.addAcceptedRequestSnapshot(current,other)
+                observeFriendState()
+
             }
         } ?: "This User Doesn't Exist or Info Not Available "
         /** You could display the current user info*/
@@ -58,8 +62,6 @@ class ProfileFragment : Fragment() {
 
     private fun observeSentReq(currentUser: FirebaseUser, otherUser: UserBody) {
         lifecycleScope.launch {
-
-
             viewModel.sentRequestStatus.collect { resource ->
                 when (resource) {
                     is RequestState.Loading -> {
@@ -134,6 +136,7 @@ class ProfileFragment : Fragment() {
                     }
                     is RequestState.Successful -> {
                         binding.receivedText.text = resource.data.toString()
+                        binding.requestPrompt.isVisible = !resource.data
                         if (resource.data) {
                             showHandler(false)
                         } else {
@@ -146,16 +149,32 @@ class ProfileFragment : Fragment() {
                             }
                         }
 
-
                     }
                     is RequestState.Failure -> {
                         binding.receivedText.text = resource.msg
                         showHandler(false)
                     }
                     is RequestState.NonExistent -> {
+                        binding.requestPrompt.isVisible = false
                         binding.receivedText.text = "Request Doesn't Exist"
                         showHandler(false)
                     }
+                }
+            }
+        }
+    }
+
+    private fun observeFriendState(){
+        lifecycleScope.launch{
+            viewModel.friendsOrNot.collect{state->
+                if (state){
+                    //show friends icon, hide controllers
+                    //don't //observeSent or //observeReceived
+                    binding.textButton.text = "FRIENDS"
+                }else{
+                    //show not friends
+                    // observeSent and //observeReceived
+                    binding.textButton.text = "NOT FRIENDS"
                 }
             }
         }

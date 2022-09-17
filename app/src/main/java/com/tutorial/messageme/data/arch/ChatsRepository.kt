@@ -37,4 +37,7 @@ interface ChatsRepository {
 
     fun cancelSentRequest(currentUserUid: String, otherUserUid: String)
 
+    fun checkIfFriends(currentUserUid: String, otherUserUid: String): Flow<Boolean>
+    fun getAllFriends(): Flow<Resource<List<UserBody>>>
+
 }

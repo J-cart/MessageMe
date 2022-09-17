@@ -3,7 +3,6 @@ package com.tutorial.messageme.data.arch
 import android.util.Log
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.ktx.auth
-import com.google.firebase.firestore.auth.User
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.firestore.ktx.toObject
 import com.google.firebase.ktx.Firebase
@@ -408,25 +407,31 @@ class ChatsRepositoryImpl : ChatsRepository {
                     "status", state
                 ).addOnCompleteListener {
                     if (it.isSuccessful) {
-                        val user = UserBody(
-                            uid = otherUser.uid,
-                            userName = otherUser.userName,
-                            fName = otherUser.fName,
-                            lName = otherUser.lName,
-                            phoneNo = otherUser.phoneNo,
-                            email = otherUser.email,
-                            displayImg = otherUser.displayImg,
-                            userStatus = otherUser.userStatus,
-                            dob = otherUser.dob,
-                            gender = otherUser.gender
-                        )
+
+
+                        val user =
+                            currentUser.email?.let { it1 ->
+                                UserBody(
+                                    uid = currentUser.uid,
+                                    userName = "currentUser.userName",
+                                    fName = "currentUser.fName",
+                                    lName = "currentUser.lName",
+                                    phoneNo = "currentUser.phoneNo",
+                                    email = it1,
+                                    displayImg = "currentUser.displayImg",
+                                    userStatus = "currentUser.userStatus",
+                                    dob = "currentUser.dob",
+                                    gender = "currentUser.gender"
+                                )
+                            }?: "dummy@gmail.com"
+
 
                         fStoreReq.document(otherUser.uid).collection(SENT_REQUEST)
                             .document(requestId).update(
                                 "status", state
                             )
                         fStoreReq.document(currentUser.uid).collection(ACCEPTED_REQUEST)
-                            .document(otherUser.uid).set(user)
+                            .document(otherUser.uid).set(otherUser)
                         fStoreReq.document(otherUser.uid).collection(ACCEPTED_REQUEST)
                             .document(currentUser.uid).set(user)
                     }
@@ -443,7 +448,7 @@ class ChatsRepositoryImpl : ChatsRepository {
         }
     }
 
-   override fun cancelSentRequest(currentUserUid: String, otherUserUid: String){
+    override fun cancelSentRequest(currentUserUid: String, otherUserUid: String) {
         val requestId = currentUserUid + otherUserUid
 
         fStoreReq.document(currentUserUid).collection(SENT_REQUEST)
@@ -459,23 +464,46 @@ class ChatsRepositoryImpl : ChatsRepository {
             }
     }
 
-    fun getAllFriends(currentUserUid: String,otherUserUid: String):Flow<Resource<List<UserBody>>>{
+   override fun getAllFriends(
+
+    ): Flow<Resource<List<UserBody>>> {
         return callbackFlow {
-            fStoreReq.document(currentUserUid).collection(ACCEPTED_REQUEST).get().addOnCompleteListener { task->
-                if(!task.result.isEmpty){
-                    val friendsList = mutableListOf<UserBody>()
-                    task.result.documents.forEach { user->
-                        val friend = user.toObject<UserBody>()
-                        friend?.let {
-                            friendsList.add(it)
+            fAuth.currentUser?.let { currentUser->
+                fStoreReq.document(currentUser.uid).collection(ACCEPTED_REQUEST).get()
+                    .addOnCompleteListener { task ->
+                        if (!task.result.isEmpty) {
+                            val friendsList = mutableListOf<UserBody>()
+                            task.result.documents.forEach { user ->
+                                val friend = user.toObject<UserBody>()
+                                friend?.let {
+                                    friendsList.add(it)
+                                }
+                            }
+                            trySend(Resource.Successful(friendsList))
+                            return@addOnCompleteListener
                         }
+                        trySend(Resource.Failure(task.exception.toString()))
+
                     }
-                    trySend(Resource.Successful(friendsList))
-                    return@addOnCompleteListener
-                }
-                trySend(Resource.Failure(task.exception.toString()))
-            }
+
+            }?: trySend(Resource.Failure("No User is Signed In"))
+            awaitClose()
         }
 
     }
+
+   override fun checkIfFriends(currentUserUid: String, otherUserUid: String): Flow<Boolean> {
+        return callbackFlow {
+            fStoreReq.document(currentUserUid).collection(ACCEPTED_REQUEST)
+                .document(otherUserUid).get().addOnCompleteListener {
+                    if (it.result.exists()) {
+                        trySend(true)
+                        return@addOnCompleteListener
+                    }
+                    trySend(false)
+                }
+            awaitClose()
+        }
+    }
+
 }

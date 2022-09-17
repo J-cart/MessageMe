@@ -13,7 +13,8 @@ import com.tutorial.messageme.data.models.RequestBody
 import com.tutorial.messageme.data.models.UserBody
 import com.tutorial.messageme.data.utils.*
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -46,7 +47,6 @@ class ChatsViewModel @Inject constructor(private val repository: ChatsRepository
     val receivedRequestStatus = _receivedRequestStatus.asStateFlow()
 
     //region NO_REPOSITORY
-
 
 
     fun getMessages(currentUser: FirebaseUser, otherUser: UserBody) {
@@ -239,27 +239,32 @@ class ChatsViewModel @Inject constructor(private val repository: ChatsRepository
         repository.handleReceivedRequest(currentUser, otherUser, state)
     }
 
-    fun cancelSentRequest(currentUser: FirebaseUser, otherUser: UserBody){
-        repository.cancelSentRequest(currentUser.uid,otherUser.uid)
+    fun cancelSentRequest(currentUser: FirebaseUser, otherUser: UserBody) {
+        repository.cancelSentRequest(currentUser.uid, otherUser.uid)
     }
 
 
-    fun sendFriendRequest(currentUser: FirebaseUser, otherUser: UserBody, requestBody: RequestBody){
+    fun sendFriendRequest(
+        currentUser: FirebaseUser,
+        otherUser: UserBody,
+        requestBody: RequestBody
+    ) {
         viewModelScope.launch {
-            repository.sendFriendRequest(currentUser.uid,otherUser.uid,requestBody).collect{request->
-                when(request){
-                    is RequestState.Failure->{
-                        _userRequestState.value = RequestState.Failure(request.msg)
+            repository.sendFriendRequest(currentUser.uid, otherUser.uid, requestBody)
+                .collect { request ->
+                    when (request) {
+                        is RequestState.Failure -> {
+                            _userRequestState.value = RequestState.Failure(request.msg)
+                        }
+                        is RequestState.Successful -> {
+                            _userRequestState.value = RequestState.Successful(request.data)
+                        }
+                        is RequestState.NonExistent -> {
+                            _userRequestState.value = RequestState.NonExistent
+                        }
+                        else -> Unit
                     }
-                    is RequestState.Successful->{
-                        _userRequestState.value = RequestState.Successful(request.data)
-                    }
-                    is RequestState.NonExistent->{
-                        _userRequestState.value = RequestState.NonExistent
-                    }
-                    else->Unit
                 }
-            }
         }
     }
 
@@ -347,9 +352,6 @@ class ChatsViewModel @Inject constructor(private val repository: ChatsRepository
     }
 
 
-
-
-
     fun addSentRequestSnapshot(currentUser: FirebaseUser, otherUser: UserBody) {
         fStoreReq.document(currentUser.uid).collection(SENT_REQUEST)
             .whereEqualTo("senderId", currentUser.uid)
@@ -358,8 +360,11 @@ class ChatsViewModel @Inject constructor(private val repository: ChatsRepository
                     Log.d("me_sentRequestSnapshot", "Listen failed. $error")
                     return@addSnapshotListener
                 }
-                Log.d("me_sentRequestSnapshot", "Listen failed. $error")
-                loadSentRequestState(currentUser.uid,otherUser.uid)
+                Log.d(
+                    "me_sentRequestSnapshot",
+                    "Listen Successful. theres the possibility of Error--> $error"
+                )
+                loadSentRequestState(currentUser.uid, otherUser.uid)
 
             }
 
@@ -373,8 +378,61 @@ class ChatsViewModel @Inject constructor(private val repository: ChatsRepository
                     Log.d("me_rec_RequestSnapshot", "Listen failed. $error")
                     return@addSnapshotListener
                 }
-                Log.d("me_rec_RequestSnapshot", "Listen failed. $error")
-                loadReceivedRequestState(currentUser.uid,otherUser.uid)
+                Log.d(
+                    "me_rec_RequestSnapshot",
+                    "Listen Successful. theres the possibility of Error--> $error"
+                )
+                loadReceivedRequestState(currentUser.uid, otherUser.uid)
+            }
+
+    }
+
+    private val _friendsOrNot = MutableStateFlow(false)
+    val friendsOrNot = _friendsOrNot.asStateFlow()
+    private fun checkIfFriends(currentUser: FirebaseUser, otherUser: UserBody) {
+        viewModelScope.launch {
+            repository.checkIfFriends(currentUser.uid, otherUser.uid).collect {
+                _friendsOrNot.value = it
+            }
+        }
+
+    }
+
+
+    fun loadAllFriends() {
+        viewModelScope.launch {
+            repository.getAllFriends().collect { resource ->
+                when (resource) {
+                    is Resource.Failure -> {
+                        _allFriendsState.value = Resource.Failure(resource.msg)
+                    }
+                    is Resource.Successful -> {
+                        resource.data?.let { friends ->
+                            _allFriendsState.value = Resource.Successful(friends)
+                        }
+
+                    }
+                    else -> Unit
+                }
+
+            }
+        }
+    }
+
+    fun addAcceptedRequestSnapshot(currentUser: FirebaseUser, otherUser: UserBody) {
+        fStoreReq.document(currentUser.uid).collection(ACCEPTED_REQUEST)
+            .whereEqualTo("uid", otherUser.uid)
+            .addSnapshotListener { value, error ->
+                if (error != null) {
+                    Log.d("me_acceptedReq", "Listen failed. $error")
+                    return@addSnapshotListener
+                }
+                Log.d(
+                    "me_acceptedReq",
+                    "Listen Successful $value ::: there's the possibility of Error--> $error"
+                )
+                //TODO
+                checkIfFriends(currentUser, otherUser)
             }
 
     }

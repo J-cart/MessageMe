@@ -9,6 +9,20 @@
     <!-- TODO: Update blank fragment layout -->
 
     <TextView
+        android:id="@+id/requestPrompt"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/purple_200"
+        android:padding="5dp"
+        android:text="You have a request from this user"
+        android:textAlignment="center"
+        android:visibility="invisible"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+
+    <TextView
         android:id="@+id/infoText"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
@@ -129,6 +143,20 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/progressBar" />
+
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/textButton"
+style="@style/Widget.MaterialComponents.Button.TextButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textColor="@color/black"
+        tools:text="Text Button here"
+        app:icon="@drawable/ic_home_24"
+        app:iconTint="@color/black"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/errorText" />
 
 
 </androidx.constraintlayout.widget.ConstraintLayout>
