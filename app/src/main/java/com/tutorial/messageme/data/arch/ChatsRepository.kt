@@ -27,17 +27,16 @@ interface ChatsRepository {
 
 
     fun getSentRequestState(currentUserUid: String, otherUserUid: String): Flow<RequestState>
-    fun addSentSnapshot(currentUser: FirebaseUser, otherUser: UserBody)
     fun checkSentRequest(currentUserUid: String, otherUserUid: String): Flow<Boolean>
 
     fun getReceivedRequestState(currentUserUid: String, otherUserUid: String): Flow<RequestState>
     fun checkReceivedRequest(currentUserUid: String, otherUserUid: String): Flow<Boolean>
-    fun addReceivedSnapshot(currentUser: FirebaseUser, otherUser: UserBody)
     fun handleReceivedRequest(currentUser: FirebaseUser, otherUser: UserBody, state:Boolean)
 
     fun cancelSentRequest(currentUserUid: String, otherUserUid: String)
 
     fun checkIfFriends(currentUserUid: String, otherUserUid: String): Flow<Boolean>
+
     fun getAllFriends(): Flow<Resource<List<UserBody>>>
 
 }

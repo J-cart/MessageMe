@@ -16,7 +16,6 @@ import com.tutorial.messageme.data.arch.ChatsViewModel
 import com.tutorial.messageme.data.models.RequestBody
 import com.tutorial.messageme.data.models.UserBody
 import com.tutorial.messageme.data.utils.RequestState
-import com.tutorial.messageme.data.utils.Resource
 import com.tutorial.messageme.databinding.FragmentProfileBinding
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
@@ -52,7 +51,7 @@ class ProfileFragment : Fragment() {
                 viewModel.loadReceivedRequestState(current.uid, other.uid)
                 viewModel.addReceivedRequestSnapshot(current, other)
 
-                viewModel.addAcceptedRequestSnapshot(current,other)
+                viewModel.addSpecificAcceptedSnapshot(current,other)
                 observeFriendState()
 
             }
@@ -170,6 +169,7 @@ class ProfileFragment : Fragment() {
                 if (state){
                     //show friends icon, hide controllers
                     //don't //observeSent or //observeReceived
+                    showSend(false)
                     binding.textButton.text = "FRIENDS"
                 }else{
                     //show not friends

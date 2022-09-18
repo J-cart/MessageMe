@@ -41,7 +41,12 @@ class FriendsFragment : Fragment() {
 
         //TODO: 1. show all friends
         binding.recyclerView.adapter = adapter
-        observeFriendsState()
+        fAuth.currentUser?.let {
+            viewModel.loadAllFriends()
+            viewModel.addAcceptedSnapshot(it)
+            observeFriendsState()
+        }
+
 
         binding.addUsersTV.setOnClickListener {
             val navigate = FriendsFragmentDirections.actionFriendsFragmentToAllUsersFragment()
@@ -60,7 +65,6 @@ class FriendsFragment : Fragment() {
 
 
     private fun observeFriendsState() {
-        viewModel.loadAllFriends()
         lifecycleScope.launch {
             viewModel.allFriendsState.collect { resource ->
                 when (resource) {
@@ -73,6 +77,8 @@ class FriendsFragment : Fragment() {
                         //show error
                         showLoading(false)
                         showError(true, "..You Currently Have No Friends..")
+                        adapter.submitList(emptyList())
+
                     }
                     is Resource.Successful -> {
                         //show friends
@@ -86,7 +92,10 @@ class FriendsFragment : Fragment() {
                             } else {
                                 adapter.submitList(list)
                                 adapter.adapterClick {
-                                    val navigate = FriendsFragmentDirections.actionFriendsFragmentToChatsFragment(it)
+                                    val navigate =
+                                        FriendsFragmentDirections.actionFriendsFragmentToChatsFragment(
+                                            it
+                                        )
                                     findNavController().navigate(navigate)
                                 }
 

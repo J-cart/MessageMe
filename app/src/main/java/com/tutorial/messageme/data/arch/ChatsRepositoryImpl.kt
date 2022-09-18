@@ -285,21 +285,6 @@ class ChatsRepositoryImpl : ChatsRepository {
         }
     }
 
-    override fun addSentSnapshot(currentUser: FirebaseUser, otherUser: UserBody) {
-        fStoreReq.document(currentUser.uid).collection(SENT_REQUEST)
-            .whereEqualTo("senderId", currentUser.uid)
-            .whereEqualTo("receiverId", otherUser.uid).addSnapshotListener { value, error ->
-                if (error != null) {
-                    Log.d("me_sentRequestSnapshot", "Listen failed. $error")
-                    return@addSnapshotListener
-                }
-                Log.d("me_sentRequestSnapshot", "Listen failed. $error")
-                getSentRequestState(currentUser.uid, otherUser.uid)
-
-            }
-
-
-    }
 
     override fun getReceivedRequestState(
         currentUserUid: String,
@@ -375,23 +360,7 @@ class ChatsRepositoryImpl : ChatsRepository {
             awaitClose()
         }
 
-    override fun addReceivedSnapshot(
-        currentUser: FirebaseUser, otherUser: UserBody
-    ) {
-        fStoreReq.document(currentUser.uid).collection(RECEIVED_REQUEST)
-            .whereEqualTo("senderId", otherUser.uid)
-            .whereEqualTo("receiverId", currentUser.uid).addSnapshotListener { value, error ->
-                if (error != null) {
-                    Log.d("me_rec_RequestSnapshot", "Listen failed. $error")
-                    return@addSnapshotListener
-                }
-                Log.d("me_rec_RequestSnapshot", "Listen failed. $error")
-                getReceivedRequestState(currentUser.uid, otherUser.uid)
 
-            }
-
-
-    }
 
     override fun handleReceivedRequest(
         currentUser: FirebaseUser,
@@ -423,7 +392,7 @@ class ChatsRepositoryImpl : ChatsRepository {
                                     dob = "currentUser.dob",
                                     gender = "currentUser.gender"
                                 )
-                            }?: "dummy@gmail.com"
+                            } ?: "dummy@gmail.com"
 
 
                         fStoreReq.document(otherUser.uid).collection(SENT_REQUEST)
@@ -464,35 +433,9 @@ class ChatsRepositoryImpl : ChatsRepository {
             }
     }
 
-   override fun getAllFriends(
 
-    ): Flow<Resource<List<UserBody>>> {
-        return callbackFlow {
-            fAuth.currentUser?.let { currentUser->
-                fStoreReq.document(currentUser.uid).collection(ACCEPTED_REQUEST).get()
-                    .addOnCompleteListener { task ->
-                        if (!task.result.isEmpty) {
-                            val friendsList = mutableListOf<UserBody>()
-                            task.result.documents.forEach { user ->
-                                val friend = user.toObject<UserBody>()
-                                friend?.let {
-                                    friendsList.add(it)
-                                }
-                            }
-                            trySend(Resource.Successful(friendsList))
-                            return@addOnCompleteListener
-                        }
-                        trySend(Resource.Failure(task.exception.toString()))
 
-                    }
-
-            }?: trySend(Resource.Failure("No User is Signed In"))
-            awaitClose()
-        }
-
-    }
-
-   override fun checkIfFriends(currentUserUid: String, otherUserUid: String): Flow<Boolean> {
+    override fun checkIfFriends(currentUserUid: String, otherUserUid: String): Flow<Boolean> {
         return callbackFlow {
             fStoreReq.document(currentUserUid).collection(ACCEPTED_REQUEST)
                 .document(otherUserUid).get().addOnCompleteListener {
@@ -506,4 +449,45 @@ class ChatsRepositoryImpl : ChatsRepository {
         }
     }
 
+    override fun getAllFriends(): Flow<Resource<List<UserBody>>> {
+        return callbackFlow {
+            getAllUsers().collect { resource ->
+                when (resource) {
+                    is Resource.Failure -> {
+                        trySend(Resource.Failure(resource.msg))
+                    }
+                    is Resource.Successful -> {
+                        fAuth.currentUser?.let { currentUser ->
+                            fStoreReq.document(currentUser.uid).collection(ACCEPTED_REQUEST).get()
+                                .addOnCompleteListener { task ->
+                                    val friendsList = mutableListOf<UserBody>()
+                                    if (!task.result.isEmpty) {
+                                        friendsList.clear()
+                                        task.result.documents.forEach { user ->
+                                            user.toObject<UserBody>()?.let {
+                                                resource.data?.let { userList ->
+                                                    userList.forEach { mainUser ->
+                                                        if (it.uid == mainUser.uid) {
+                                                            friendsList.add(mainUser)
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                        trySend(Resource.Successful(friendsList))
+                                        return@addOnCompleteListener
+                                    }
+                                    trySend(Resource.Failure(task.exception.toString()))
+                                }
+                        }
+
+                    }
+                    else -> Unit
+                }
+
+            }
+        }
+
+    }
 }
+

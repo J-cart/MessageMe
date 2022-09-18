@@ -399,6 +399,43 @@ class ChatsViewModel @Inject constructor(private val repository: ChatsRepository
     }
 
 
+
+
+    fun addSpecificAcceptedSnapshot(currentUser: FirebaseUser, otherUser: UserBody) {
+        fStoreReq.document(currentUser.uid).collection(ACCEPTED_REQUEST)
+            .whereEqualTo("uid", otherUser.uid)
+            .addSnapshotListener { value, error ->
+                if (error != null) {
+                    Log.d("me_acceptedReq", "Listen failed. $error")
+                    return@addSnapshotListener
+                }
+                Log.d(
+                    "me_acceptedReq",
+                    "Listen Successful $value ::: there's the possibility of Error--> $error"
+                )
+                //TODO
+                checkIfFriends(currentUser, otherUser)
+
+            }
+
+    }
+ fun addAcceptedSnapshot(currentUser: FirebaseUser) {
+        fStoreReq.document(currentUser.uid).collection(ACCEPTED_REQUEST)
+            .addSnapshotListener { value, error ->
+                if (error != null) {
+                    Log.d("me_accepted", "Listen failed. $error")
+                    return@addSnapshotListener
+                }
+                Log.d(
+                    "me_accepted",
+                    "Listen Successful $value ::: there's the possibility of Error--> $error"
+                )
+
+                loadAllFriends()
+            }
+
+    }
+
     fun loadAllFriends() {
         viewModelScope.launch {
             repository.getAllFriends().collect { resource ->
@@ -417,24 +454,6 @@ class ChatsViewModel @Inject constructor(private val repository: ChatsRepository
 
             }
         }
-    }
-
-    fun addAcceptedRequestSnapshot(currentUser: FirebaseUser, otherUser: UserBody) {
-        fStoreReq.document(currentUser.uid).collection(ACCEPTED_REQUEST)
-            .whereEqualTo("uid", otherUser.uid)
-            .addSnapshotListener { value, error ->
-                if (error != null) {
-                    Log.d("me_acceptedReq", "Listen failed. $error")
-                    return@addSnapshotListener
-                }
-                Log.d(
-                    "me_acceptedReq",
-                    "Listen Successful $value ::: there's the possibility of Error--> $error"
-                )
-                //TODO
-                checkIfFriends(currentUser, otherUser)
-            }
-
     }
 
 
