@@ -6,7 +6,6 @@ import androidx.lifecycle.viewModelScope
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.firestore.ktx.firestore
-import com.google.firebase.firestore.ktx.toObject
 import com.google.firebase.ktx.Firebase
 import com.tutorial.messageme.data.models.ChatMessage
 import com.tutorial.messageme.data.models.RequestBody
@@ -37,8 +36,8 @@ class ChatsViewModel @Inject constructor(private val repository: ChatsRepository
     private val _userMessages = MutableStateFlow<Resource<List<ChatMessage>>>(Resource.Loading())
     val userMessages = _userMessages.asStateFlow()
 
-    private val _userRequestState = MutableStateFlow<RequestState>(RequestState.Loading)
-    val userRequestState = _userRequestState.asStateFlow()
+    private val _userSentRequestState = MutableStateFlow<RequestState>(RequestState.Loading)
+    val userSentRequestState = _userSentRequestState.asStateFlow()
 
     private val _sentRequestStatus = MutableStateFlow<RequestState>(RequestState.Loading)
     val sentRequestStatus = _sentRequestStatus.asStateFlow()
@@ -46,60 +45,13 @@ class ChatsViewModel @Inject constructor(private val repository: ChatsRepository
     private val _receivedRequestStatus = MutableStateFlow<RequestState>(RequestState.Loading)
     val receivedRequestStatus = _receivedRequestStatus.asStateFlow()
 
-    //region NO_REPOSITORY
+    private val _allFriendsState = MutableStateFlow<Resource<List<UserBody>>>(Resource.Loading())
+    val allFriendsState = _allFriendsState.asStateFlow()
+
+    private val _friendsOrNot = MutableStateFlow(false)
+    val friendsOrNot = _friendsOrNot.asStateFlow()
 
 
-    fun getMessages(currentUser: FirebaseUser, otherUser: UserBody) {
-        viewModelScope.launch {
-            fStoreMsg.document(currentUser.uid).collection(otherUser.uid).get()
-                .addOnCompleteListener { getMessages ->
-
-                    when {
-                        getMessages.isSuccessful -> {
-                            val list = mutableListOf<ChatMessage>()
-                            if (!getMessages.result.isEmpty) {
-                                list.clear()
-                                for (msg in getMessages.result.documents) {
-                                    val messages = msg.toObject<ChatMessage>()
-                                    messages?.let {
-                                        list.add(it)
-                                    }
-                                }
-                                Log.d("me_allMSG", "SUCCESS--->${getMessages.isComplete}")
-                                _userMessages.value = Resource.Successful(list)
-                                return@addOnCompleteListener
-                            }
-                            Log.d("me_allMSG", "ERROR--->${getMessages.exception}")
-                            _userMessages.value = Resource.Failure("${getMessages.exception}")
-                        }
-                        else -> {
-                            Log.d("me_allMSG", "ERROR--->${getMessages.exception}")
-                            _userMessages.value = Resource.Failure("${getMessages.exception}")
-                        }
-                    }
-
-                }
-        }
-    }
-
-
-    fun sendMessage(currentUser: FirebaseUser, otherUser: UserBody, message: ChatMessage) {
-        viewModelScope.launch {
-            fStoreMsg.document(currentUser.uid).collection(otherUser.uid)
-                .document(System.currentTimeMillis().toString()).set(message)
-                .addOnCompleteListener {
-                    if (it.isSuccessful) {
-                        fStoreMsg.document(otherUser.uid).collection(currentUser.uid)
-                            .document(System.currentTimeMillis().toString()).set(message)
-                        Log.d("me_message", "msg sent ")
-                        return@addOnCompleteListener
-                    }
-                    Log.d("me_message", "msg NOT sent ")
-                }
-        }
-    }
-
-    //endregion
 
 
     //region REPOSITORY
@@ -161,7 +113,7 @@ class ChatsViewModel @Inject constructor(private val repository: ChatsRepository
         }
     }
 
-    fun getMsg_T(currentUser: FirebaseUser, otherUser: UserBody) {
+    fun getMsg(currentUser: FirebaseUser, otherUser: UserBody) {
         viewModelScope.launch {
             repository.getChatMessages(currentUser.uid, otherUser.uid).collect {
                 when (it) {
@@ -177,7 +129,7 @@ class ChatsViewModel @Inject constructor(private val repository: ChatsRepository
         }
     }
 
-    fun sendMsg_T(currentUser: FirebaseUser, otherUser: UserBody, message: ChatMessage) {
+    fun sendMsg(currentUser: FirebaseUser, otherUser: UserBody, message: ChatMessage) {
         viewModelScope.launch {
             repository.sendMessage(currentUser.uid, otherUser.uid, message).collect {
                 when (it) {
@@ -185,7 +137,7 @@ class ChatsViewModel @Inject constructor(private val repository: ChatsRepository
                         Log.d("me_message", "msg sent ")
                     }
                     is RequestState.Failure -> {
-                        Log.d("me_message", "msg NOT sent ")
+                        Log.d("me_message", "msg NOT sent ${it.msg} ")
                     }
                     else -> Unit
                 }
@@ -254,13 +206,13 @@ class ChatsViewModel @Inject constructor(private val repository: ChatsRepository
                 .collect { request ->
                     when (request) {
                         is RequestState.Failure -> {
-                            _userRequestState.value = RequestState.Failure(request.msg)
+                            _userSentRequestState.value = RequestState.Failure(request.msg)
                         }
                         is RequestState.Successful -> {
-                            _userRequestState.value = RequestState.Successful(request.data)
+                            _userSentRequestState.value = RequestState.Successful(request.data)
                         }
                         is RequestState.NonExistent -> {
-                            _userRequestState.value = RequestState.NonExistent
+                            _userSentRequestState.value = RequestState.NonExistent
                         }
                         else -> Unit
                     }
@@ -272,84 +224,7 @@ class ChatsViewModel @Inject constructor(private val repository: ChatsRepository
 
 
     //region DUMPSTER
-    private val _allFriendsState = MutableStateFlow<Resource<List<UserBody>>>(Resource.Loading())
-    val allFriendsState = _allFriendsState.asStateFlow()
 
-    fun getAllFriends(currentUser: FirebaseUser, otherUser: UserBody) {
-        viewModelScope.launch {
-            val reqList = mutableListOf<RequestBody>()
-            fStoreReq.document(currentUser.uid).collection(SENT_REQUEST).get()
-                .addOnCompleteListener { task ->
-                    if (task.result.isEmpty || task.result != null) {
-                        for (req in task.result.documents) {
-                            val reqBody = req.toObject<RequestBody>()
-                            reqBody?.let {
-                                if (it.status) {
-                                    reqList.add(it)
-                                }
-                            }
-                        }
-                    }
-                }
-            val friendsList = mutableListOf<UserBody>()
-            repository.getAllUsers().collect {
-                when (it) {
-                    is Resource.Successful -> {
-                        it.data?.let { users ->
-                            reqList.forEach { req ->
-                                users.forEach { user ->
-                                    if (req.receiverId == user.uid) {
-                                        friendsList.add(user)
-                                    }
-                                }
-                            }
-                        }
-
-                    }
-                    is Resource.Failure -> {
-                        //show error2
-                    }
-                    else -> Unit
-                }
-            }
-
-            /////////////////////OPTION - 2////////////////////////
-            val acceptedReq = mutableListOf<String>()
-            fStoreReq.document(currentUser.uid).collection(ACCEPTED_REQUEST).get()
-                .addOnCompleteListener { task ->
-                    if (!task.result.isEmpty || task.result != null) {
-                        task.result.documents.forEach { uid ->
-                            val acc = uid.toString()
-                            acceptedReq.add(acc)
-                        }
-                    }
-
-                }
-
-            repository.getAllUsers().collect {
-                when (it) {
-                    is Resource.Successful -> {
-                        it.data?.let { users ->
-                            acceptedReq.forEach { req ->
-                                users.forEach { user ->
-                                    if (req == user.uid) {
-                                        friendsList.add(user)
-                                    }
-                                }
-                            }
-                        }
-
-                    }
-                    is Resource.Failure -> {
-                        //show error
-                    }
-                    else -> Unit
-                }
-            }
-
-
-        }
-    }
 
 
     fun addSentRequestSnapshot(currentUser: FirebaseUser, otherUser: UserBody) {
@@ -387,8 +262,6 @@ class ChatsViewModel @Inject constructor(private val repository: ChatsRepository
 
     }
 
-    private val _friendsOrNot = MutableStateFlow(false)
-    val friendsOrNot = _friendsOrNot.asStateFlow()
     private fun checkIfFriends(currentUser: FirebaseUser, otherUser: UserBody) {
         viewModelScope.launch {
             repository.checkIfFriends(currentUser.uid, otherUser.uid).collect {
@@ -432,6 +305,23 @@ class ChatsViewModel @Inject constructor(private val repository: ChatsRepository
                 )
 
                 loadAllFriends()
+            }
+
+    }
+fun addMessagesSnapshot(currentUser: FirebaseUser,otherUser: UserBody) {
+        fStoreMsg.document(currentUser.uid).collection(otherUser.uid)
+            .addSnapshotListener { value, error ->
+                if (error != null) {
+                    Log.d("me_msg", "Listen failed. $error")
+                    return@addSnapshotListener
+                }
+                Log.d(
+                    "me_msg",
+                    "Listen Successful $value ::: there's the possibility of Error--> $error"
+                )
+
+               //get messages
+                getMsg(currentUser, otherUser)
             }
 
     }

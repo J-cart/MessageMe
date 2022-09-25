@@ -3,8 +3,10 @@
   <component name="DesignSurface">
     <option name="filePathToZoomLevelMap">
       <map>
+        <entry key="..\:/Users/DELL/AndroidStudioProjects/MessageMe/app/src/main/res/drawable-v24/ic_baseline_date_range_24.xml" value="0.185" />
         <entry key="..\:/Users/DELL/AndroidStudioProjects/MessageMe/app/src/main/res/drawable-v24/loading_img.xml" value="0.2545" />
         <entry key="..\:/Users/DELL/AndroidStudioProjects/MessageMe/app/src/main/res/drawable/ic_home_24.xml" value="0.276" />
+        <entry key="..\:/Users/DELL/AndroidStudioProjects/MessageMe/app/src/main/res/drawable/toggle_send_btn.xml" value="0.185" />
         <entry key="..\:/Users/DELL/AndroidStudioProjects/MessageMe/app/src/main/res/layout/activity_main.xml" value="0.21557971014492755" />
         <entry key="..\:/Users/DELL/AndroidStudioProjects/MessageMe/app/src/main/res/layout/fragment_all_users.xml" value="0.2477355072463768" />
         <entry key="..\:/Users/DELL/AndroidStudioProjects/MessageMe/app/src/main/res/layout/fragment_blank.xml" value="0.20969202898550723" />
@@ -13,7 +15,7 @@
         <entry key="..\:/Users/DELL/AndroidStudioProjects/MessageMe/app/src/main/res/layout/fragment_blank4.xml" value="0.20969202898550723" />
         <entry key="..\:/Users/DELL/AndroidStudioProjects/MessageMe/app/src/main/res/layout/fragment_blank5.xml" value="0.2" />
         <entry key="..\:/Users/DELL/AndroidStudioProjects/MessageMe/app/src/main/res/layout/fragment_blank6.xml" value="0.2" />
-        <entry key="..\:/Users/DELL/AndroidStudioProjects/MessageMe/app/src/main/res/layout/fragment_chats.xml" value="0.13196555217831812" />
+        <entry key="..\:/Users/DELL/AndroidStudioProjects/MessageMe/app/src/main/res/layout/fragment_chats.xml" value="0.2" />
         <entry key="..\:/Users/DELL/AndroidStudioProjects/MessageMe/app/src/main/res/layout/fragment_edit_profile.xml" value="0.264" />
         <entry key="..\:/Users/DELL/AndroidStudioProjects/MessageMe/app/src/main/res/layout/fragment_friend_requests.xml" value="0.13196555217831812" />
         <entry key="..\:/Users/DELL/AndroidStudioProjects/MessageMe/app/src/main/res/layout/fragment_friends.xml" value="0.2477355072463768" />
@@ -23,6 +25,8 @@
         <entry key="..\:/Users/DELL/AndroidStudioProjects/MessageMe/app/src/main/res/layout/fragment_sent_requests.xml" value="0.13196555217831812" />
         <entry key="..\:/Users/DELL/AndroidStudioProjects/MessageMe/app/src/main/res/layout/fragment_user_profile.xml" value="0.23197625106022052" />
         <entry key="..\:/Users/DELL/AndroidStudioProjects/MessageMe/app/src/main/res/layout/login_page.xml" value="0.264" />
+        <entry key="..\:/Users/DELL/AndroidStudioProjects/MessageMe/app/src/main/res/layout/receiver_viewholder.xml" value="0.151268115942029" />
+        <entry key="..\:/Users/DELL/AndroidStudioProjects/MessageMe/app/src/main/res/layout/sender_viewholder.xml" value="0.151268115942029" />
         <entry key="..\:/Users/DELL/AndroidStudioProjects/MessageMe/app/src/main/res/layout/signup_page.xml" value="0.264" />
         <entry key="..\:/Users/DELL/AndroidStudioProjects/MessageMe/app/src/main/res/layout/user_viewholder.xml" value="0.2" />
         <entry key="..\:/Users/DELL/AndroidStudioProjects/MessageMe/app/src/main/res/menu/bottom_nav.xml" value="0.2713541666666667" />

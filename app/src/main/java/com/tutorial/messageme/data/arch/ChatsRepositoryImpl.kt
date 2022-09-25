@@ -208,14 +208,11 @@ class ChatsRepositoryImpl : ChatsRepository {
     }
 
 
-    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-
     override fun checkSentRequest(currentUserUid: String, otherUserUid: String): Flow<Boolean> =
         callbackFlow {
             fStoreReq.document(currentUserUid).collection(SENT_REQUEST)
-                .whereEqualTo("senderId", currentUserUid)
-                .whereEqualTo("receiverId", otherUserUid)
+                .whereEqualTo(SENDER_ID, currentUserUid)
+                .whereEqualTo(RECEIVER_ID, otherUserUid)
                 .get().addOnCompleteListener { req ->
                     when {
                         req.isSuccessful -> {
@@ -248,8 +245,8 @@ class ChatsRepositoryImpl : ChatsRepository {
                 when {
                     exists -> {
                         fStoreReq.document(currentUserUid).collection(SENT_REQUEST)
-                            .whereEqualTo("senderId", currentUserUid)
-                            .whereEqualTo("receiverId", otherUserUid)
+                            .whereEqualTo(SENDER_ID, currentUserUid)
+                            .whereEqualTo(RECEIVER_ID, otherUserUid)
                             .get().addOnCompleteListener { req ->
 
                                 if (req.isComplete) {
@@ -295,8 +292,8 @@ class ChatsRepositoryImpl : ChatsRepository {
                 when {
                     exists -> {
                         fStoreReq.document(currentUserUid).collection(RECEIVED_REQUEST)
-                            .whereEqualTo("senderId", otherUserUid)
-                            .whereEqualTo("receiverId", currentUserUid)
+                            .whereEqualTo(SENDER_ID, otherUserUid)
+                            .whereEqualTo(RECEIVER_ID, currentUserUid)
                             .get().addOnCompleteListener { req ->
 
                                 if (req.isComplete) {
@@ -338,8 +335,8 @@ class ChatsRepositoryImpl : ChatsRepository {
     override fun checkReceivedRequest(currentUserUid: String, otherUserUid: String): Flow<Boolean> =
         callbackFlow {
             fStoreReq.document(currentUserUid).collection(RECEIVED_REQUEST)
-                .whereEqualTo("senderId", otherUserUid)
-                .whereEqualTo("receiverId", currentUserUid)
+                .whereEqualTo(SENDER_ID, otherUserUid)
+                .whereEqualTo(RECEIVER_ID, currentUserUid)
                 .get().addOnCompleteListener { req ->
                     when {
                         req.isSuccessful -> {

@@ -106,7 +106,6 @@ class AllUsersFragment : Fragment() {
                 Log.w("dontad", "Listen failed.", e)
                 return@addSnapshotListener
             }
-            viewModel.getMessages(user, otherUser)
             //viewModel.getMsg(user,otherUser)
 
         }
