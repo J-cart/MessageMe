@@ -12,6 +12,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.ktx.Firebase
+import com.tutorial.messageme.R
 import com.tutorial.messageme.data.arch.ChatsViewModel
 import com.tutorial.messageme.data.utils.RequestState
 import com.tutorial.messageme.databinding.FragmentLoginBinding
@@ -77,9 +78,7 @@ class LoginFragment : Fragment() {
                                     "Login Successful--> ${it.data}",
                                     Toast.LENGTH_SHORT
                                 ).show()
-                                val navigate =
-                                    LoginFragmentDirections.actionLoginFragmentToRecentChatsFragment()
-                                findNavController().navigate(navigate)
+                                findNavController().navigate(R.id.recentChatsFragment)
                             }
                             is RequestState.Failure -> {
                                 progressBar.isVisible = false

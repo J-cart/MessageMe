@@ -44,11 +44,11 @@ class ProfileFragment : Fragment() {
             currentUser?.let { current ->
                 binding.infoText.text = other.toString()
                 observeSentReq(current, other)
-                viewModel.loadSentRequestState(current.uid, other.uid)
+//                viewModel.loadSentRequestState(current.uid, other.uid)
                 viewModel.addSentRequestSnapshot(current, other)
 
                 observeReceived(current, other)
-                viewModel.loadReceivedRequestState(current.uid, other.uid)
+//                viewModel.loadReceivedRequestState(current.uid, other.uid)
                 viewModel.addReceivedRequestSnapshot(current, other)
 
                 viewModel.addSpecificAcceptedSnapshot(current,other)

@@ -2,6 +2,7 @@ package com.tutorial.messageme.data.arch
 
 import com.google.firebase.auth.FirebaseUser
 import com.tutorial.messageme.data.models.ChatMessage
+import com.tutorial.messageme.data.models.LatestChatMessage
 import com.tutorial.messageme.data.models.RequestBody
 import com.tutorial.messageme.data.models.UserBody
 import com.tutorial.messageme.data.utils.RequestState
@@ -22,7 +23,8 @@ interface ChatsRepository {
     fun sendMessage(
         currentUserUid: String,
         otherUserUid: String,
-        message: ChatMessage
+        message: ChatMessage,
+        latestChatMessage: LatestChatMessage
     ): Flow<RequestState>
 
 
@@ -38,5 +40,7 @@ interface ChatsRepository {
     fun checkIfFriends(currentUserUid: String, otherUserUid: String): Flow<Boolean>
 
     fun getAllFriends(): Flow<Resource<List<UserBody>>>
+
+    fun getLatestMsg(currentUser: FirebaseUser): Flow<Resource<List<LatestChatMessage>>>
 
 }

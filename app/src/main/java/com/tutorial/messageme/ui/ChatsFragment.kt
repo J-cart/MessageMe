@@ -13,6 +13,7 @@ import com.google.firebase.auth.ktx.auth
 import com.google.firebase.ktx.Firebase
 import com.tutorial.messageme.data.arch.ChatsViewModel
 import com.tutorial.messageme.data.models.ChatMessage
+import com.tutorial.messageme.data.models.LatestChatMessage
 import com.tutorial.messageme.data.models.UserBody
 import com.tutorial.messageme.data.utils.ChatsAdapter
 import com.tutorial.messageme.data.utils.Resource
@@ -69,7 +70,7 @@ class ChatsFragment : Fragment() {
             timeStamp = System.currentTimeMillis().toString()
         )
 
-        viewModel.sendMsg(currentUser,otherUser,msg)
+        viewModel.sendMsg(currentUser, otherUser, msg, LatestChatMessage(otherUser, msg))
         binding.msgBox.text.clear()
 
     }

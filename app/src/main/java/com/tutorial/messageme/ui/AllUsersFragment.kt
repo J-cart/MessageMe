@@ -1,7 +1,6 @@
 package com.tutorial.messageme.ui
 
 import android.os.Bundle
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -10,7 +9,6 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
-import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
 import com.tutorial.messageme.data.arch.ChatsViewModel
@@ -97,18 +95,6 @@ class AllUsersFragment : Fragment() {
     }
     private fun loadingState(state:Boolean){
         binding.progressBar.isVisible = state
-    }
-
-    private fun snapshotUpdater(user: FirebaseUser){
-        val docRef = fStoreMsg.document(user.uid).collection(otherUser.uid)
-        docRef.addSnapshotListener { snapshot, e ->
-            if (e != null) {
-                Log.w("dontad", "Listen failed.", e)
-                return@addSnapshotListener
-            }
-            //viewModel.getMsg(user,otherUser)
-
-        }
     }
 
 }

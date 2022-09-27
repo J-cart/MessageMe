@@ -7,6 +7,7 @@ import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.firestore.ktx.toObject
 import com.google.firebase.ktx.Firebase
 import com.tutorial.messageme.data.models.ChatMessage
+import com.tutorial.messageme.data.models.LatestChatMessage
 import com.tutorial.messageme.data.models.RequestBody
 import com.tutorial.messageme.data.models.UserBody
 import com.tutorial.messageme.data.utils.*
@@ -187,7 +188,8 @@ class ChatsRepositoryImpl : ChatsRepository {
     override fun sendMessage(
         currentUserUid: String,
         otherUserUid: String,
-        message: ChatMessage
+        message: ChatMessage,
+        latestChatMessage: LatestChatMessage
     ): Flow<RequestState> {
         return callbackFlow {
             fStoreMsg.document(currentUserUid).collection(otherUserUid)
@@ -205,6 +207,15 @@ class ChatsRepositoryImpl : ChatsRepository {
                 }
             awaitClose()
         }
+    }
+
+    fun setLatestMsg(
+        currentUser: FirebaseUser,
+        otherUser: UserBody,
+        latestChatMessage: LatestChatMessage
+    ) {
+        fStoreMsg.document(LATEST_MSG).collection(currentUser.uid).document(otherUser.uid)
+            .set(latestChatMessage)
     }
 
 
@@ -249,7 +260,7 @@ class ChatsRepositoryImpl : ChatsRepository {
                             .whereEqualTo(RECEIVER_ID, otherUserUid)
                             .get().addOnCompleteListener { req ->
 
-                                if (req.isComplete) {
+                                if (req.isSuccessful) {
                                     try {
                                         val request =
                                             req.result.documents[0].toObject<RequestBody>()
@@ -296,7 +307,7 @@ class ChatsRepositoryImpl : ChatsRepository {
                             .whereEqualTo(RECEIVER_ID, currentUserUid)
                             .get().addOnCompleteListener { req ->
 
-                                if (req.isComplete) {
+                                if (req.isSuccessful) {
                                     try {
                                         val request =
                                             req.result.documents[0].toObject<RequestBody>()
@@ -356,7 +367,6 @@ class ChatsRepositoryImpl : ChatsRepository {
                 }
             awaitClose()
         }
-
 
 
     override fun handleReceivedRequest(
@@ -431,7 +441,6 @@ class ChatsRepositoryImpl : ChatsRepository {
     }
 
 
-
     override fun checkIfFriends(currentUserUid: String, otherUserUid: String): Flow<Boolean> {
         return callbackFlow {
             fStoreReq.document(currentUserUid).collection(ACCEPTED_REQUEST)
@@ -481,10 +490,43 @@ class ChatsRepositoryImpl : ChatsRepository {
                     }
                     else -> Unit
                 }
-
             }
         }
 
     }
+
+    override fun getLatestMsg(currentUser: FirebaseUser): Flow<Resource<List<LatestChatMessage>>> {
+
+        return callbackFlow {
+            fStoreMsg.document(LATEST_MSG).collection(currentUser.uid).get()
+                .addOnCompleteListener { task ->
+
+                    when {
+                        task.isSuccessful -> {
+                            val msgList = mutableListOf<LatestChatMessage>()
+                            if (!task.result.isEmpty) {
+                                msgList.clear()
+                                task.result.documents.forEach { msg ->
+                                    msg.toObject<LatestChatMessage>()?.let {
+                                        msgList.add(it)
+                                    }
+
+                                }
+                                trySend(Resource.Successful(msgList))
+                                return@addOnCompleteListener
+                            }
+                            trySend(Resource.Failure(task.exception.toString()))
+                        }
+                        else -> {
+                            trySend(Resource.Failure(task.exception.toString()))
+                        }
+
+                    }
+
+                }
+        }
+
+    }
+
 }
 

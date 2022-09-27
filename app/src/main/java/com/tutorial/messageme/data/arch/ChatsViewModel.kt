@@ -8,6 +8,7 @@ import com.google.firebase.auth.ktx.auth
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
 import com.tutorial.messageme.data.models.ChatMessage
+import com.tutorial.messageme.data.models.LatestChatMessage
 import com.tutorial.messageme.data.models.RequestBody
 import com.tutorial.messageme.data.models.UserBody
 import com.tutorial.messageme.data.utils.*
@@ -20,7 +21,7 @@ import javax.inject.Inject
 @HiltViewModel
 class ChatsViewModel @Inject constructor(private val repository: ChatsRepository) : ViewModel() {
     private val fAuth = Firebase.auth
-    private val fStoreUsers = Firebase.firestore.collection(USERS)
+    private val fStoreLatestMsg = Firebase.firestore.collection(LATEST_MSG)
     private val fStoreMsg = Firebase.firestore.collection(MESSAGES)
     private val fStoreReq = Firebase.firestore.collection(FRIEND_REQUEST)
 
@@ -50,8 +51,6 @@ class ChatsViewModel @Inject constructor(private val repository: ChatsRepository
 
     private val _friendsOrNot = MutableStateFlow(false)
     val friendsOrNot = _friendsOrNot.asStateFlow()
-
-
 
 
     //region REPOSITORY
@@ -113,7 +112,7 @@ class ChatsViewModel @Inject constructor(private val repository: ChatsRepository
         }
     }
 
-    fun getMsg(currentUser: FirebaseUser, otherUser: UserBody) {
+    private fun getMsg(currentUser: FirebaseUser, otherUser: UserBody) {
         viewModelScope.launch {
             repository.getChatMessages(currentUser.uid, otherUser.uid).collect {
                 when (it) {
@@ -129,19 +128,25 @@ class ChatsViewModel @Inject constructor(private val repository: ChatsRepository
         }
     }
 
-    fun sendMsg(currentUser: FirebaseUser, otherUser: UserBody, message: ChatMessage) {
+    fun sendMsg(
+        currentUser: FirebaseUser,
+        otherUser: UserBody,
+        message: ChatMessage,
+        latestChatMessage: LatestChatMessage
+    ) {
         viewModelScope.launch {
-            repository.sendMessage(currentUser.uid, otherUser.uid, message).collect {
-                when (it) {
-                    is RequestState.Successful -> {
-                        Log.d("me_message", "msg sent ")
+            repository.sendMessage(currentUser.uid, otherUser.uid, message, latestChatMessage)
+                .collect {
+                    when (it) {
+                        is RequestState.Successful -> {
+                            Log.d("me_message", "msg sent ")
+                        }
+                        is RequestState.Failure -> {
+                            Log.d("me_message", "msg NOT sent ${it.msg} ")
+                        }
+                        else -> Unit
                     }
-                    is RequestState.Failure -> {
-                        Log.d("me_message", "msg NOT sent ${it.msg} ")
-                    }
-                    else -> Unit
                 }
-            }
         }
     }
 
@@ -226,7 +231,6 @@ class ChatsViewModel @Inject constructor(private val repository: ChatsRepository
     //region DUMPSTER
 
 
-
     fun addSentRequestSnapshot(currentUser: FirebaseUser, otherUser: UserBody) {
         fStoreReq.document(currentUser.uid).collection(SENT_REQUEST)
             .whereEqualTo("senderId", currentUser.uid)
@@ -272,8 +276,6 @@ class ChatsViewModel @Inject constructor(private val repository: ChatsRepository
     }
 
 
-
-
     fun addSpecificAcceptedSnapshot(currentUser: FirebaseUser, otherUser: UserBody) {
         fStoreReq.document(currentUser.uid).collection(ACCEPTED_REQUEST)
             .whereEqualTo("uid", otherUser.uid)
@@ -292,7 +294,8 @@ class ChatsViewModel @Inject constructor(private val repository: ChatsRepository
             }
 
     }
- fun addAcceptedSnapshot(currentUser: FirebaseUser) {
+
+    fun addAcceptedSnapshot(currentUser: FirebaseUser) {
         fStoreReq.document(currentUser.uid).collection(ACCEPTED_REQUEST)
             .addSnapshotListener { value, error ->
                 if (error != null) {
@@ -308,7 +311,8 @@ class ChatsViewModel @Inject constructor(private val repository: ChatsRepository
             }
 
     }
-fun addMessagesSnapshot(currentUser: FirebaseUser,otherUser: UserBody) {
+
+    fun addMessagesSnapshot(currentUser: FirebaseUser, otherUser: UserBody) {
         fStoreMsg.document(currentUser.uid).collection(otherUser.uid)
             .addSnapshotListener { value, error ->
                 if (error != null) {
@@ -320,7 +324,7 @@ fun addMessagesSnapshot(currentUser: FirebaseUser,otherUser: UserBody) {
                     "Listen Successful $value ::: there's the possibility of Error--> $error"
                 )
 
-               //get messages
+                //get messages
                 getMsg(currentUser, otherUser)
             }
 
@@ -348,6 +352,46 @@ fun addMessagesSnapshot(currentUser: FirebaseUser,otherUser: UserBody) {
 
 
     //endregion
+
+    private val _latestMsg = MutableStateFlow<Resource<List<LatestChatMessage>>>(Resource.Loading())
+    val latestMsg = _latestMsg.asStateFlow()
+
+    fun setLatestMsg(
+        currentUser: FirebaseUser,
+        otherUser: UserBody,
+        latestChatMessage: LatestChatMessage
+    ) {
+        fStoreMsg.document(LATEST_MSG).collection(currentUser.uid).document(otherUser.uid)
+            .set(latestChatMessage)
+    }
+
+    private fun getLatestMsg(currentUser: FirebaseUser) {
+        viewModelScope.launch {
+            repository.getLatestMsg(currentUser).collect { resource ->
+                when (resource) {
+                    is Resource.Successful -> {
+                        _latestMsg.value = Resource.Successful(resource.data)
+                    }
+                    is Resource.Failure -> {
+                        _latestMsg.value = Resource.Failure(resource.msg)
+                    }
+                    else -> Unit
+                }
+            }
+        }
+    }
+
+    fun addLatestMsgSnapshot(currentUser: FirebaseUser, otherUser: UserBody) {
+        fStoreMsg.document(LATEST_MSG).collection(currentUser.uid)
+            .addSnapshotListener { value, error ->
+                if (error != null) {
+                    Log.d("me_latestMsgSnapshot", "Error---->> $error")
+                    return@addSnapshotListener
+                }
+                Log.d("me_latestMsgSnapshot", "listener success---->> $error")
+                getLatestMsg(currentUser)
+            }
+    }
 
 
 }
