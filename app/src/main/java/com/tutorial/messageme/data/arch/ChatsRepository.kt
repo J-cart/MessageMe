@@ -23,8 +23,7 @@ interface ChatsRepository {
     fun sendMessage(
         currentUserUid: String,
         otherUserUid: String,
-        message: ChatMessage,
-        latestChatMessage: LatestChatMessage
+        message: ChatMessage
     ): Flow<RequestState>
 
 

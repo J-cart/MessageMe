@@ -131,11 +131,10 @@ class ChatsViewModel @Inject constructor(private val repository: ChatsRepository
     fun sendMsg(
         currentUser: FirebaseUser,
         otherUser: UserBody,
-        message: ChatMessage,
-        latestChatMessage: LatestChatMessage
+        message: ChatMessage
     ) {
         viewModelScope.launch {
-            repository.sendMessage(currentUser.uid, otherUser.uid, message, latestChatMessage)
+            repository.sendMessage(currentUser.uid, otherUser.uid, message)
                 .collect {
                     when (it) {
                         is RequestState.Successful -> {
@@ -381,7 +380,7 @@ class ChatsViewModel @Inject constructor(private val repository: ChatsRepository
         }
     }
 
-    fun addLatestMsgSnapshot(currentUser: FirebaseUser, otherUser: UserBody) {
+    fun addLatestMsgSnapshot(currentUser: FirebaseUser) {
         fStoreMsg.document(LATEST_MSG).collection(currentUser.uid)
             .addSnapshotListener { value, error ->
                 if (error != null) {

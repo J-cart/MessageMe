@@ -8,6 +8,8 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
+import com.google.firebase.auth.ktx.auth
+import com.google.firebase.ktx.Firebase
 import com.tutorial.messageme.data.arch.ChatsViewModel
 import com.tutorial.messageme.data.models.LatestChatMessage
 import com.tutorial.messageme.data.models.RecentChatAdapter
@@ -25,6 +27,7 @@ class RecentChatsFragment : Fragment() {
     private val adapter by lazy {
         RecentChatAdapter()
     }
+    private val currentUser = Firebase.auth.currentUser
 
 
     override fun onCreateView(
@@ -38,41 +41,46 @@ class RecentChatsFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        binding.recyclerView.adapter = adapter
+        currentUser?.let {
+            viewModel.addLatestMsgSnapshot(it)
+            lifecycleScope.launch {
+                viewModel.latestMsg.collect{resource->
+                    when(resource){
+                        is Resource.Loading->{
+                            //show Loading
+                            binding.statusTv.text = "LOADING...PLEASE WAIT....."
+                        }
+                        is Resource.Successful->{
+                            //display result
+                            resource.data?.let {
+                                adapter.submitList(it)
+                            }?: emptyList<LatestChatMessage>()
+
+                            adapter.adapterClick {
+                                val navigate = RecentChatsFragmentDirections.actionRecentChatsFragmentToChatsFragment(it.userBody)
+                                findNavController().navigate(navigate)
+                            }
+                        }
+                        is Resource.Failure->{
+                            //show error
+                            resource.msg?.let {
+                                binding.statusTv.text = it
+                            }
+                        }
+                    }
+
+                }
+            }
+
+        }
+
         binding.fabAddFriends.setOnClickListener {
             val navigate =
                 RecentChatsFragmentDirections.actionRecentChatsFragmentToFriendsFragment()
             findNavController().navigate(navigate)
         }
-        binding.recyclerView.adapter = adapter
 
-        lifecycleScope.launch {
-            viewModel.latestMsg.collect{resource->
-                when(resource){
-                    is Resource.Loading->{
-                        //show Loading
-                        binding.statusTv.text = "LOADING...PLEASE WAIT....."
-                    }
-                    is Resource.Successful->{
-                        //display result
-                        resource.data?.let {
-                            adapter.submitList(it)
-                        }?: emptyList<LatestChatMessage>()
-
-                        adapter.adapterClick {
-                            val navigate = AllUsersFragmentDirections.actionGlobalProfileFragment(it.userBody)
-                            findNavController().navigate(navigate)
-                        }
-                    }
-                    is Resource.Failure->{
-                        //show error
-                        resource.msg?.let {
-                            binding.statusTv.text = it
-                        }
-                    }
-                }
-
-            }
-        }
 
     }
 
