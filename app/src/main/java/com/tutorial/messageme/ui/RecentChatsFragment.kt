@@ -4,6 +4,7 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
@@ -24,9 +25,8 @@ class RecentChatsFragment : Fragment() {
     private var _binding: FragmentRecentChatsBinding? = null
     private val binding get() = _binding!!
     private val viewModel by activityViewModels<ChatsViewModel>()
-    private val adapter by lazy {
-        RecentChatAdapter()
-    }
+
+    private lateinit var adapter: RecentChatAdapter
     private val currentUser = Firebase.auth.currentUser
 
 
@@ -41,20 +41,25 @@ class RecentChatsFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        binding.recyclerView.adapter = adapter
-        currentUser?.let {
-            viewModel.addLatestMsgSnapshot(it)
+
+        currentUser?.let {user->
+            adapter = RecentChatAdapter(user.uid)
+            viewModel.addLatestMsgSnapshot(user)
+            binding.recyclerView.adapter = adapter
             lifecycleScope.launch {
                 viewModel.latestMsg.collect{resource->
                     when(resource){
                         is Resource.Loading->{
                             //show Loading
+                            binding.progressBar.isVisible = true
                             binding.statusTv.text = "LOADING...PLEASE WAIT....."
                         }
                         is Resource.Successful->{
                             //display result
-                            resource.data?.let {
-                                adapter.submitList(it)
+                            binding.progressBar.isVisible = false
+                            resource.data?.let {list->
+                                binding.statusTv.text = "Available Chats :${list.size}"
+                                adapter.submitList(list)
                             }?: emptyList<LatestChatMessage>()
 
                             adapter.adapterClick {
@@ -64,8 +69,9 @@ class RecentChatsFragment : Fragment() {
                         }
                         is Resource.Failure->{
                             //show error
-                            resource.msg?.let {
-                                binding.statusTv.text = it
+                            binding.progressBar.isVisible = true
+                            resource.msg?.let {msg->
+                                binding.statusTv.text = msg
                             }
                         }
                     }

@@ -22,52 +22,55 @@
             android:clipChildren="false">
 
             <androidx.appcompat.widget.AppCompatTextView
-                android:id="@+id/userBody"
+                android:id="@+id/msg"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="8dp"
+                android:maxWidth="250dp"
                 android:padding="8dp"
                 android:textAlignment="textStart"
                 android:textColor="@color/black"
                 android:textSize="15dp"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toStartOf="@+id/declineBtn"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toTopOf="parent"
                 tools:text="hello bro this is Joseph" />
 
-            <androidx.appcompat.widget.AppCompatTextView
-                android:id="@+id/msg"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_marginEnd="5dp"
-                android:ellipsize="end"
-                android:maxLength="30"
-                android:padding="3dp"
-                android:textAlignment="textStart"
-                android:textColor="@color/black"
-                android:textSize="15dp"
-                android:textStyle="italic"
-                app:layout_constraintEnd_toStartOf="@+id/statusText"
-                app:layout_constraintStart_toStartOf="@+id/userBody"
-                app:layout_constraintTop_toBottomOf="@id/userBody"
-                tools:text="hello message" />
-
-            <androidx.appcompat.widget.AppCompatTextView
-                android:id="@+id/statusText"
-                android:layout_width="0dp"
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/acceptBtn"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginEnd="8dp"
-                android:ellipsize="end"
-                android:maxLength="30"
-                android:padding="3dp"
-                android:textColor="@color/black"
-                android:textSize="15dp"
-                android:textStyle="italic"
+                android:text="Accept"
+                android:visibility="invisible"
+                app:layout_constraintBottom_toBottomOf="@+id/declineBtn"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintTop_toTopOf="@+id/declineBtn" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/declineBtn"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="10dp"
+                android:text="decline"
+                android:visibility="invisible"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toStartOf="@+id/acceptBtn"
+                app:layout_constraintTop_toTopOf="parent" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/cancelBtn"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="cancel"
+                android:visibility="invisible"
                 app:layout_constraintBottom_toBottomOf="@+id/msg"
                 app:layout_constraintEnd_toEndOf="parent"
-                tools:text="sent" />
-
-
+                app:layout_constraintStart_toEndOf="@+id/msg"
+                app:layout_constraintTop_toTopOf="@+id/msg" />
         </androidx.constraintlayout.widget.ConstraintLayout>
+
 
 
     </androidx.cardview.widget.CardView>

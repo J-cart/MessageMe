@@ -9,7 +9,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.tutorial.messageme.R
 import com.tutorial.messageme.databinding.RecentChatsViewholderBinding
 
-class RecentChatAdapter :
+class RecentChatAdapter(private val uid:String) :
     ListAdapter<LatestChatMessage, RecentChatAdapter.ViewHolder>(DiffCallBack) {
 
 
@@ -18,6 +18,11 @@ class RecentChatAdapter :
         fun bind(data: LatestChatMessage) {
             binding.msg.text = data.chatMessage.message
             binding.userBody.text= data.userBody.email
+            if (uid == data.chatMessage.senderId){
+                binding.statusText.text = "Sent"
+            }else{
+                binding.statusText.text = " "
+            }
             binding.root.setOnClickListener {
                 listener?.let { it1 -> it1(data) }
             }

@@ -1,10 +1,7 @@
 package com.tutorial.messageme.data.arch
 
 import com.google.firebase.auth.FirebaseUser
-import com.tutorial.messageme.data.models.ChatMessage
-import com.tutorial.messageme.data.models.LatestChatMessage
-import com.tutorial.messageme.data.models.RequestBody
-import com.tutorial.messageme.data.models.UserBody
+import com.tutorial.messageme.data.models.*
 import com.tutorial.messageme.data.utils.RequestState
 import com.tutorial.messageme.data.utils.Resource
 import kotlinx.coroutines.flow.Flow
@@ -41,5 +38,8 @@ interface ChatsRepository {
     fun getAllFriends(): Flow<Resource<List<UserBody>>>
 
     fun getLatestMsg(currentUser: FirebaseUser): Flow<Resource<List<LatestChatMessage>>>
+
+    fun getAllReceivedRequest(currentUser: FirebaseUser):Flow<Resource<List<RequestBodyWrapper>>>
+    fun getAllSentRequest(currentUser: FirebaseUser):Flow<Resource<List<RequestBodyWrapper>>>
 
 }

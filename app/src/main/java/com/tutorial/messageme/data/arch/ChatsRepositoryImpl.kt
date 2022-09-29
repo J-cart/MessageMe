@@ -16,9 +16,9 @@ import kotlinx.coroutines.tasks.await
 class ChatsRepositoryImpl : ChatsRepository {
 
     private val fAuth = Firebase.auth
-    private val fStoreUsers = Firebase.firestore.collection("Users")
-    private val fStoreMsg = Firebase.firestore.collection("Messages")
-    private val fStoreReq = Firebase.firestore.collection("Friend_Requests")
+    private val fStoreUsers = Firebase.firestore.collection(USERS)
+    private val fStoreMsg = Firebase.firestore.collection(MESSAGES)
+    private val fStoreReq = Firebase.firestore.collection(FRIEND_REQUEST)
 
 
     override fun signUpNew(email: String, password: String): Flow<RequestState> {
@@ -189,38 +189,20 @@ class ChatsRepositoryImpl : ChatsRepository {
         message: ChatMessage
     ): Flow<RequestState> {
         return callbackFlow {
-            /*      fStoreMsg.document(currentUserUid).collection(otherUserUid)
-                      .document(System.currentTimeMillis().toString()).set(message)
-                      .addOnCompleteListener {
-                          if (it.isSuccessful) {
-                              fStoreMsg.document(otherUserUid).collection(currentUserUid)
-                                  .document(System.currentTimeMillis().toString()).set(message)
-                              Log.d("me_message", "msg sent ")
-                              /////////////////////////////////////////////////
-                              fStoreMsg.document(LATEST_MSG).collection(currentUserUid)
-                                  .document(otherUserUid)
-                                  .set(latestChatMessage)
-                              fStoreMsg.document(LATEST_MSG).collection(otherUserUid)
-                                  .document(currentUserUid)
-                                  .set(latestChatMessage)
-                              trySend(RequestState.Successful(it.isComplete))
-                              ////////////////////////////////////////////////
-                              return@addOnCompleteListener
-                          }
-                          trySend(RequestState.Failure(it.exception.toString()))
-                          Log.d("me_message", "msg NOT sent -- ${it.exception} ")
-                      }*/
 
-            val msgRef = fStoreMsg.document(currentUserUid).collection(otherUserUid)
+            val curMsgRef = fStoreMsg.document(currentUserUid).collection(otherUserUid)
+                .document(System.currentTimeMillis().toString())
+            val otherMsgRef = fStoreMsg.document(otherUserUid).collection(currentUserUid)
                 .document(System.currentTimeMillis().toString())
             val lstMsgRefCur =
                 fStoreMsg.document(LATEST_MSG).collection(currentUserUid).document(otherUserUid)
             val lstMsgRefOther =
                 fStoreMsg.document(LATEST_MSG).collection(otherUserUid).document(currentUserUid)
-            val curMsgBody = LatestMsgBody(otherUserUid, message)
-            val otherMsgBody = LatestMsgBody(currentUserUid, message)
+            val curMsgBody = LatestMsgWrapper(otherUserUid, message)
+            val otherMsgBody = LatestMsgWrapper(currentUserUid, message)
             Firebase.firestore.runBatch { batch ->
-                batch.set(msgRef, message)
+                batch.set(curMsgRef, message)
+                batch.set(otherMsgRef, message)
                 batch.set(lstMsgRefCur, curMsgBody)
                 batch.set(lstMsgRefOther, otherMsgBody)
             }.addOnCompleteListener { task ->
@@ -232,11 +214,7 @@ class ChatsRepositoryImpl : ChatsRepository {
                 Log.d("me_message", "msg NOT sent -- ${task.exception} ")
                 trySend(RequestState.Failure(task.exception.toString()))
             }
-            Firebase.firestore.runTransaction { transaction ->
-                fStoreUsers.whereEqualTo("uid", currentUserUid)
-                    .get().result.documents[0].toObject<UserBody>()
-                transaction.get(fStoreUsers.document(""))
-            }
+
             awaitClose()
         }
     }
@@ -486,27 +464,30 @@ class ChatsRepositoryImpl : ChatsRepository {
                     }
                     is Resource.Successful -> {
                         fAuth.currentUser?.let { currentUser ->
-                            fStoreReq.document(currentUser.uid).collection(ACCEPTED_REQUEST).get()
-                                .addOnCompleteListener { task ->
-                                    val friendsList = mutableListOf<UserBody>()
-                                    if (!task.result.isEmpty) {
-                                        friendsList.clear()
-                                        task.result.documents.forEach { user ->
-                                            user.toObject<UserBody>()?.let {
-                                                resource.data?.let { userList ->
-                                                    userList.forEach { mainUser ->
-                                                        if (it.uid == mainUser.uid) {
-                                                            friendsList.add(mainUser)
-                                                        }
-                                                    }
+                            try {
+                                val friendsList = mutableListOf<UserBody>()
+                                val collection =
+                                    fStoreReq.document(currentUser.uid).collection(ACCEPTED_REQUEST)
+                                        .get().await()
+                                friendsList.clear()
+                                collection.documents.forEach { user ->
+                                    Log.d("me_friendListTest", "in collection")
+                                    user.toObject<UserBody>()?.let {
+                                        resource.data?.let { userList ->
+                                            userList.forEach { mainUser ->
+                                                if (it.uid == mainUser.uid) {
+                                                    friendsList.add(mainUser)
                                                 }
                                             }
                                         }
-                                        trySend(Resource.Successful(friendsList))
-                                        return@addOnCompleteListener
                                     }
-                                    trySend(Resource.Failure(task.exception.toString()))
                                 }
+                                trySend(Resource.Successful(friendsList))
+                                Log.d("me_friendListTest", "success==>$friendsList")
+                            } catch (e: Exception) {
+                                trySend(Resource.Failure(e.toString()))
+                                Log.d("me_friendListTest", "exception ---$e")
+                            }
                         }
 
                     }
@@ -523,152 +504,95 @@ class ChatsRepositoryImpl : ChatsRepository {
             try {
 
                 val msgList = mutableListOf<LatestChatMessage>()
-                val collection = fStoreMsg.document(LATEST_MSG).collection(currentUser.uid).get().await()
-                collection.documents.forEach { message->
+                val collection =
+                    fStoreMsg.document(LATEST_MSG).collection(currentUser.uid).get().await()
+                collection.documents.forEach { message ->
                     Log.d("me_latestMsgTest", "in collection")
-                    message.toObject<LatestMsgBody>()?.let {latestMsg ->
-                        val new =  fStoreUsers.whereEqualTo("uid", latestMsg.uid)
+                    message.toObject<LatestMsgWrapper>()?.let { latestMsg ->
+                        val newTaks = fStoreUsers.whereEqualTo("uid", latestMsg.uid)
                             .get().await()
                         Log.d("me_latestMsgTest", "in newUser")
-                        val userBody = new.documents[0].toObject<UserBody>()
+                        val userBody = newTaks.documents[0].toObject<UserBody>()
                         userBody?.let {
-                            msgList.add( LatestChatMessage(it,latestMsg.chatMessage))
+                            msgList.add(LatestChatMessage(it, latestMsg.chatMessage))
                         }
                     }
 
                 }
                 Log.d("me_latestMsgTest", "success ===> $msgList")
                 trySend(Resource.Successful(msgList))
-            }catch (e:Exception){
+            } catch (e: Exception) {
                 Log.d("me_latestMsgTest", "exception ---$e")
             }
-
-
-/*
-            fStoreMsg.document(LATEST_MSG).collection(currentUser.uid).get()
-                .addOnCompleteListener { task ->
-                    when {
-                        task.isSuccessful -> {
-                            val msgList = mutableListOf<LatestChatMessage>()
-                            if (!task.result.isEmpty) {
-                                msgList.clear()
-                                task.result.documents.forEach { msg ->
-                                    msg.toObject<LatestMsgBody>()?.let { latestMsgBody ->
-                                        Log.d("me_latestMsgTest", "UID +++ ${latestMsgBody.uid}")
-                                        fStoreUsers.whereEqualTo("uid", latestMsgBody.uid)
-                                            .get().addOnCompleteListener { task2 ->
-                                                if(task2.isSuccessful){
-                                                    Log.d("me_latestMsgTest", "Success======>not empty ${task2.result.documents}")
-                                                    val userBody =
-                                                        task2.result.documents[0].toObject<UserBody>()
-                                                    userBody?.let {
-                                                        val msgBody = LatestChatMessage(
-                                                            it,
-                                                            latestMsgBody.chatMessage
-                                                        )
-                                                        msgList.add(msgBody)
-                                                    }
-                                                }else{
-                                                    Log.d("me_latestMsgTest", "exception -->${task2.exception}")
-                                                }
-
-
-                                            }
-
-                                    }
-                                }
-                                Log.d("me_latestMsgTest", "Sent Resource to Ui==$msgList")
-                                trySend(Resource.Successful(msgList))
-                                return@addOnCompleteListener
-                            }
-                            Log.d("me_latestMsgTest", "exception ---${task.exception}")
-                            trySend(Resource.Failure(task.exception.toString()))
-                        }
-                        else -> {
-                            Log.d("me_latestMsgTest", "exception ---${task.exception}")
-                            trySend(Resource.Failure(task.exception.toString()))
-                        }
-
-                    }
-
-                }
-*/
             awaitClose()
         }
 
     }
 
-
-    fun getLatest(currentUser: FirebaseUser): Flow<Resource<List<LatestChatMessage>>> {
+    override fun getAllSentRequest(currentUser: FirebaseUser): Flow<Resource<List<RequestBodyWrapper>>> {
 
         return callbackFlow {
             try {
-
-                val msgList = mutableListOf<LatestChatMessage>()
-                val collection = fStoreMsg.document(LATEST_MSG).collection(currentUser.uid).get().await()
-                collection.documents.forEach { message->
-                    message.toObject<LatestMsgBody>()?.let {latestMsg ->
-                        val new =  fStoreUsers.whereEqualTo("uid", latestMsg.uid)
+                val list = mutableListOf<RequestBodyWrapper>()
+                val sentReq =
+                    fStoreReq.document(currentUser.uid).collection(SENT_REQUEST).get().await()
+                Log.d("me_getRecReq", "all sentReq == ${sentReq.documents}")
+                sentReq.documents.forEach { request ->
+                    request.toObject<RequestBody>()?.let { reqBody ->
+                        val newTask = fStoreUsers.whereEqualTo("uid", reqBody.receiverId)
                             .get().await()
-                        val userBody = new.documents[0].toObject<UserBody>()
+                        Log.d("me_getSentReq", "in request body")
+                        val userBody = newTask.documents[0].toObject<UserBody>()
                         userBody?.let {
-                            msgList.add( LatestChatMessage(it,latestMsg.chatMessage))
-                        }
-                    }
-
-                }
-                trySend(Resource.Successful(msgList))
-            }catch (e:Exception){
-                Log.d("me_latestMsgTest", "exception ---$e")
-            }
-/*
-            fStoreMsg.document(LATEST_MSG).collection(currentUser.uid).get()
-                .addOnCompleteListener { task ->
-                    when {
-                        task.isSuccessful -> {
-                            val msgList = mutableListOf<LatestChatMessage>()
-                            if (!task.result.isEmpty) {
-                                msgList.clear()
-                                task.result.documents.forEach { msg ->
-                                    CoroutineScope(Dispatchers.IO).launch {
-                                        msg.toObject<LatestMsgBody>()?.let { latestMsgBody ->
-                                            Log.d("me_latestMsgTest", "UID +++ ${latestMsgBody.uid}")
-                                          try {
-                                              val new =  fStoreUsers.whereEqualTo("uid", latestMsgBody.uid)
-                                                  .get().await()
-                                              val userBody = new.documents[0].toObject<UserBody>()
-                                             userBody?.let {
-                                                 msgList.add( LatestChatMessage(it,latestMsgBody.chatMessage))
-
-                                             }
-                                              Log.d("me_latestMsgTest", "latest msg Sent")
-                                          }catch (e:Exception){
-                                              Log.d("me_latestMsgTest", "exception ---$e")
-                                          }
-
-                                        }
-                                    }
-                                }
-                                Log.d("me_latestMsgTest", "Sent Resource to Ui==$msgList")
-                                trySend(Resource.Successful(msgList))
-                                return@addOnCompleteListener
+                            if (!reqBody.status) {
+                                list.add(RequestBodyWrapper(it, reqBody))
                             }
-                            Log.d("me_latestMsgTest", "exception ---${task.exception}")
-                            trySend(Resource.Failure(task.exception.toString()))
                         }
-                        else -> {
-                            Log.d("me_latestMsgTest", "exception ---${task.exception}")
-                            trySend(Resource.Failure(task.exception.toString()))
-                        }
-
                     }
 
                 }
-*/
+                Log.d("me_getSentReq", "success === size-->${list.size}")
+                trySend(Resource.Successful(list))
+            } catch (e: Exception) {
+                Log.d("me_getSentReq", "Error === $e")
+                trySend(Resource.Failure(e.toString()))
+            }
             awaitClose()
         }
-
     }
+
+    override fun getAllReceivedRequest(currentUser: FirebaseUser): Flow<Resource<List<RequestBodyWrapper>>> {
+        return callbackFlow {
+            try {
+                val list = mutableListOf<RequestBodyWrapper>()
+                val recReq =
+                    fStoreReq.document(currentUser.uid).collection(RECEIVED_REQUEST).get().await()
+                Log.d("me_getRecReq", "all recReq == ${recReq.documents}")
+                recReq.documents.forEach { request ->
+                    request.toObject<RequestBody>()?.let { reqBody ->
+                        val newTask = fStoreUsers.whereEqualTo("uid", reqBody.senderId)
+                            .get().await()
+                        Log.d("me_getRecReq", "in request body ")
+                        val userBody = newTask.documents[0].toObject<UserBody>()
+                        userBody?.let {
+                            if (!reqBody.status) {
+                                list.add(RequestBodyWrapper(it, reqBody))
+                            }
+                        }
+                    }
+
+                }
+                Log.d("me_getRecReq", "success === size-->${list.size}")
+                trySend(Resource.Successful(list))
+            } catch (e: Exception) {
+                Log.d("me_getRecReq", "Error === $e")
+                trySend(Resource.Failure(e.toString()))
+            }
+
+            awaitClose()
+        }
+    }
+
 
 }
 

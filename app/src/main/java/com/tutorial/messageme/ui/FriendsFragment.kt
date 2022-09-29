@@ -42,7 +42,6 @@ class FriendsFragment : Fragment() {
         //TODO: 1. show all friends
         binding.recyclerView.adapter = adapter
         fAuth.currentUser?.let {
-            viewModel.loadAllFriends()
             viewModel.addAcceptedSnapshot(it)
             observeFriendsState()
         }

@@ -7,10 +7,7 @@ import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
-import com.tutorial.messageme.data.models.ChatMessage
-import com.tutorial.messageme.data.models.LatestChatMessage
-import com.tutorial.messageme.data.models.RequestBody
-import com.tutorial.messageme.data.models.UserBody
+import com.tutorial.messageme.data.models.*
 import com.tutorial.messageme.data.utils.*
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -51,6 +48,14 @@ class ChatsViewModel @Inject constructor(private val repository: ChatsRepository
 
     private val _friendsOrNot = MutableStateFlow(false)
     val friendsOrNot = _friendsOrNot.asStateFlow()
+
+    private val _allSentReqFlow =
+        MutableStateFlow<Resource<List<RequestBodyWrapper>>>(Resource.Loading())
+    val allSentReqFlow = _allSentReqFlow.asStateFlow()
+    private val _allRecReqFlow =
+        MutableStateFlow<Resource<List<RequestBodyWrapper>>>(Resource.Loading())
+    val allRecReqFlow = _allRecReqFlow.asStateFlow()
+
 
 
     //region REPOSITORY
@@ -149,7 +154,7 @@ class ChatsViewModel @Inject constructor(private val repository: ChatsRepository
         }
     }
 
-    fun loadSentRequestState(currentUserUid: String, otherUserUid: String) {
+  private  fun loadSentRequestState(currentUserUid: String, otherUserUid: String) {
         viewModelScope.launch {
             repository.getSentRequestState(currentUserUid, otherUserUid).collect { request ->
                 when (request) {
@@ -329,7 +334,7 @@ class ChatsViewModel @Inject constructor(private val repository: ChatsRepository
 
     }
 
-    fun loadAllFriends() {
+    private fun loadAllFriends() {
         viewModelScope.launch {
             repository.getAllFriends().collect { resource ->
                 when (resource) {
@@ -392,5 +397,60 @@ class ChatsViewModel @Inject constructor(private val repository: ChatsRepository
             }
     }
 
+    fun addAllSentSnapshot(currentUser: FirebaseUser) {
+        fStoreReq.document(currentUser.uid).collection(SENT_REQUEST)
+            .addSnapshotListener { value, error ->
+                if (error != null) {
+                    Log.d("me_allSentReqSnapshot", "Error---->> $error")
+                    return@addSnapshotListener
+                }
+                Log.d("me_allSentReqSnapshot", "listener success---->> $error")
+                loadAllSentReq(currentUser)
+            }
+    }
+
+    fun addAllReceivedSnapshot(currentUser: FirebaseUser) {
+        fStoreReq.document(currentUser.uid).collection(RECEIVED_REQUEST)
+            .addSnapshotListener { value, error ->
+                if (error != null) {
+                    Log.d("me_allRecReqSnapshot", "Error---->> $error")
+                    return@addSnapshotListener
+                }
+                Log.d("me_allRecReqSnapshot", "listener success---->> $error")
+                loadAllReceivedReq(currentUser)
+            }
+    }
+
+    fun loadAllSentReq(currentUser: FirebaseUser) {
+        viewModelScope.launch {
+            repository.getAllSentRequest(currentUser).collect() { resource ->
+                when (resource) {
+                    is Resource.Successful -> {
+                        _allSentReqFlow.value = Resource.Successful(resource.data)
+                    }
+                    is Resource.Failure -> {
+                        _allSentReqFlow.value = Resource.Failure(resource.msg)
+                    }
+                    else -> Unit
+                }
+            }
+        }
+    }
+
+    fun loadAllReceivedReq(currentUser: FirebaseUser) {
+        viewModelScope.launch {
+            repository.getAllReceivedRequest(currentUser).collect() { resource ->
+                when (resource) {
+                    is Resource.Successful -> {
+                        _allRecReqFlow.value = Resource.Successful(resource.data)
+                    }
+                    is Resource.Failure -> {
+                        _allRecReqFlow.value = Resource.Failure(resource.msg)
+                    }
+                    else -> Unit
+                }
+            }
+        }
+    }
 
 }
