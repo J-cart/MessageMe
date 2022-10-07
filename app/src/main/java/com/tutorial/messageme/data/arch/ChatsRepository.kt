@@ -19,7 +19,7 @@ interface ChatsRepository {
     fun getAllUsers(): Flow<Resource<List<UserBody>>>
     fun sendMessage(
         currentUserUid: String,
-        otherUserUid: String,
+        otherUser:UserBody,
         message: ChatMessage
     ): Flow<RequestState>
 

@@ -139,7 +139,7 @@ class ChatsViewModel @Inject constructor(private val repository: ChatsRepository
         message: ChatMessage
     ) {
         viewModelScope.launch {
-            repository.sendMessage(currentUser.uid, otherUser.uid, message)
+            repository.sendMessage(currentUser.uid, otherUser, message)
                 .collect {
                     when (it) {
                         is RequestState.Successful -> {

@@ -1,7 +1,8 @@
 package com.tutorial.messageme.ui
 
-import androidx.appcompat.app.AppCompatActivity
+import android.content.Intent
 import android.os.Bundle
+import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.isVisible
 import androidx.navigation.NavController
 import androidx.navigation.fragment.NavHostFragment
@@ -10,6 +11,7 @@ import androidx.navigation.ui.AppBarConfiguration
 import androidx.navigation.ui.setupActionBarWithNavController
 import androidx.navigation.ui.setupWithNavController
 import com.tutorial.messageme.R
+import com.tutorial.messageme.data.utils.VIEW_CHAT
 import com.tutorial.messageme.databinding.ActivityMainBinding
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -48,6 +50,14 @@ class MainActivity : AppCompatActivity() {
 
         setupActionBarWithNavController(navController,appBarConfiguration)
         binding.bottomNav.setupWithNavController(navController)
+    }
+
+    override fun onNewIntent(intent: Intent?) {
+        super.onNewIntent(intent)
+        if (intent?.action == VIEW_CHAT){
+            navController.navigate(R.id.recentChatsFragment)
+        }
+
     }
 
     override fun onSupportNavigateUp(): Boolean {

@@ -41,7 +41,7 @@ class ReceivedRequestsFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
         fAuth.currentUser?.let { user->
             binding.recyclerView.adapter = adapter
-            viewModel.loadAllReceivedReq(user)
+            viewModel.addAllReceivedSnapshot(user)
             observe(user)
         }
 //

@@ -42,7 +42,7 @@ class SentRequestsFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
         fAuth.currentUser?.let { user->
             binding.recyclerView.adapter = adapter
-            viewModel.loadAllSentReq(user)
+            viewModel.addAllSentSnapshot(user)
             observe(user)
         }
     }

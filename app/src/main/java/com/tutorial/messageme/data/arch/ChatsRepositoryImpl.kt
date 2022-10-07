@@ -7,12 +7,23 @@ import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.firestore.ktx.toObject
 import com.google.firebase.ktx.Firebase
 import com.google.firebase.messaging.FirebaseMessaging
+import com.google.gson.Gson
 import com.tutorial.messageme.data.models.*
 import com.tutorial.messageme.data.utils.*
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.tasks.await
+import okhttp3.Call
+import okhttp3.Callback
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.OkHttpClient
+import okhttp3.RequestBody.Companion.toRequestBody
+import okhttp3.Response
+import okhttp3.logging.HttpLoggingInterceptor
+import org.json.JSONObject
+import java.io.IOException
+import java.util.concurrent.TimeUnit
 
 class ChatsRepositoryImpl : ChatsRepository {
 
@@ -170,26 +181,27 @@ class ChatsRepositoryImpl : ChatsRepository {
 
     override fun sendMessage(
         currentUserUid: String,
-        otherUserUid: String,
+        otherUser:UserBody,
         message: ChatMessage
     ): Flow<RequestState> {
         return callbackFlow {
 
-            val curMsgRef = fStoreMsg.document(currentUserUid).collection(otherUserUid)
+            val curMsgRef = fStoreMsg.document(currentUserUid).collection(otherUser.uid)
                 .document(System.currentTimeMillis().toString())
-            val otherMsgRef = fStoreMsg.document(otherUserUid).collection(currentUserUid)
+            val otherMsgRef = fStoreMsg.document(otherUser.uid).collection(currentUserUid)
                 .document(System.currentTimeMillis().toString())
             val lstMsgRefCur =
-                fStoreMsg.document(LATEST_MSG).collection(currentUserUid).document(otherUserUid)
+                fStoreMsg.document(LATEST_MSG).collection(currentUserUid).document(otherUser.uid)
             val lstMsgRefOther =
-                fStoreMsg.document(LATEST_MSG).collection(otherUserUid).document(currentUserUid)
-            val curMsgBody = LatestMsgWrapper(otherUserUid, message)
+                fStoreMsg.document(LATEST_MSG).collection(otherUser.uid).document(currentUserUid)
+            val curMsgBody = LatestMsgWrapper(otherUser.uid, message)
             val otherMsgBody = LatestMsgWrapper(currentUserUid, message)
             Firebase.firestore.runBatch { batch ->
                 batch.set(curMsgRef, message)
                 batch.set(otherMsgRef, message)
                 batch.set(lstMsgRefCur, curMsgBody)
                 batch.set(lstMsgRefOther, otherMsgBody)
+                someMoreStuffs(message,otherUser)
             }.addOnCompleteListener { task ->
                 if (task.isSuccessful) {
                     trySend(RequestState.Successful(task.isComplete))
@@ -494,10 +506,10 @@ class ChatsRepositoryImpl : ChatsRepository {
                 collection.documents.forEach { message ->
                     Log.d("me_latestMsgTest", "in collection")
                     message.toObject<LatestMsgWrapper>()?.let { latestMsg ->
-                        val newTaks = fStoreUsers.whereEqualTo("uid", latestMsg.uid)
+                        val newTask = fStoreUsers.whereEqualTo("uid", latestMsg.uid)
                             .get().await()
                         Log.d("me_latestMsgTest", "in newUser")
-                        val userBody = newTaks.documents[0].toObject<UserBody>()
+                        val userBody = newTask.documents[0].toObject<UserBody>()
                         userBody?.let {
                             msgList.add(LatestChatMessage(it, latestMsg.chatMessage))
                         }
@@ -577,6 +589,59 @@ class ChatsRepositoryImpl : ChatsRepository {
             awaitClose()
         }
     }
+
+    private fun someMoreStuffs(chatMessage: ChatMessage,otherUser: UserBody) {
+        val body = Gson().toJson(chatMessage)
+
+        val jsonObj = JSONObject()
+        val jsonNotifier = JSONObject().also {
+            it.put("title", "Message")
+            it.put("subtitle", "SUBTITLE")
+            it.put("body", "You have a new message")
+            it.put("sound", "")
+        }
+        jsonObj.put("to", otherUser.deviceToken.last())
+        jsonObj.put("notification", jsonNotifier)
+        jsonObj.put("data", JSONObject(body))
+
+
+        val request = okhttp3.Request.Builder()
+            .url(FCM_URL)
+            .addHeader("Content-Type", "application/json")
+            .addHeader(
+                "Authorization",
+                WEB_KEY
+            )
+            .post(
+                jsonObj.toString().toRequestBody(
+                    "application/json; charset=utf-8".toMediaType()
+                )
+            ).build()
+
+
+        val logger = HttpLoggingInterceptor()
+        logger.level = HttpLoggingInterceptor.Level.BASIC
+        OkHttpClient.Builder().addInterceptor(logger)
+            .connectTimeout(120, TimeUnit.SECONDS)
+            .readTimeout(120, TimeUnit.SECONDS)
+            .build().newCall(request)
+            .enqueue(object :
+                Callback {
+                override fun onFailure(call: Call, e: IOException) {
+                    Log.d("msg-receiver", "$e")
+                }
+
+                override fun onResponse(call: Call, response: Response) {
+                    Log.d(
+                        "msg-receiver", "$response +++ " +
+                                "${call.isExecuted()}====${response.isSuccessful}" +
+                                "--${response.code}===${response.body}"
+                    )
+                }
+            })
+
+    }
+
 
 
 }

@@ -2,7 +2,10 @@ package com.tutorial.messageme.data.utils
 
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.app.PendingIntent
+import android.app.PendingIntent.FLAG_UPDATE_CURRENT
 import android.content.Context
+import android.content.Intent
 import android.os.Build
 import android.util.Log
 import androidx.core.app.NotificationCompat
@@ -15,6 +18,7 @@ import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
 import com.tutorial.messageme.R
 import com.tutorial.messageme.data.models.UserBody
+import com.tutorial.messageme.ui.MainActivity
 
 @JvmField
 val VERBOSE_NOTIFICATION_CHANNEL_NAME: CharSequence =
@@ -32,7 +36,10 @@ private val fStoreUsers = Firebase.firestore.collection(USERS)
 class FirebaseMsgReceiver : FirebaseMessagingService() {
     override fun onMessageReceived(message: RemoteMessage) {
         super.onMessageReceived(message)
-        makeStatusNotification(message.data.toString(), this)
+
+        //TODO ...FIX..1 notification gets sent whether or not the user is logged in
+        //TODO ...FIX..2 find a way to add pending intent for FCM default notification
+       // makeStatusNotification(message.data.toString(), this)
         Log.d("CLOUD_MSG", "${message.data}")
         Log.d("CLOUD_MSG", "messageType ${message.data["messageType"]}")
     }
@@ -95,6 +102,14 @@ class FirebaseMsgReceiver : FirebaseMessagingService() {
 
             notificationManager?.createNotificationChannel(channel)
         }
+        val pendingIntent = PendingIntent.getActivity(
+            this,
+            0,
+            Intent(this, MainActivity::class.java).also {
+                it.action = VIEW_CHAT
+            },
+            FLAG_UPDATE_CURRENT
+        )
 
         // Create the notification
         val builder = NotificationCompat.Builder(context, CHANNEL_ID)
@@ -102,6 +117,7 @@ class FirebaseMsgReceiver : FirebaseMessagingService() {
             .setContentTitle(NOTIFICATION_TITLE)
             .setContentText(message)
             .setAutoCancel(true)
+            //.setContentIntent(pendingIntent)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setVibrate(LongArray(0))
 
