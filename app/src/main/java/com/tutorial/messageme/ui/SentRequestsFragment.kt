@@ -41,6 +41,7 @@ class SentRequestsFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         fAuth.currentUser?.let { user->
+            binding.recyclerView.adapter = adapter
             viewModel.loadAllSentReq(user)
             observe(user)
         }

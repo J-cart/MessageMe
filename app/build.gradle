@@ -95,6 +95,9 @@ dependencies {
     //implementation "com.google.firebase:firebase-database:20.0.5"
     implementation "com.google.firebase:firebase-database-ktx:20.0.5"
 
+    //firebase-messaging-ktx:23.0.7'
+    implementation 'com.google.firebase:firebase-messaging-ktx:23.0.7'
+
     //gms---service...always include for firestore
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.6.1'
 

@@ -6,6 +6,7 @@ import com.google.firebase.auth.ktx.auth
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.firestore.ktx.toObject
 import com.google.firebase.ktx.Firebase
+import com.google.firebase.messaging.FirebaseMessaging
 import com.tutorial.messageme.data.models.*
 import com.tutorial.messageme.data.utils.*
 import kotlinx.coroutines.channels.awaitClose
@@ -23,35 +24,19 @@ class ChatsRepositoryImpl : ChatsRepository {
 
     override fun signUpNew(email: String, password: String): Flow<RequestState> {
         return callbackFlow {
-            fAuth.createUserWithEmailAndPassword(email, password).addOnCompleteListener { signUp ->
-                when {
-                    signUp.isSuccessful -> {
-                        Log.d("me_signUp", "SUCCESS--->${signUp.isComplete}")
-                        val newUser = signUp.result.user?.uid?.let {
-                            UserBody(email = email, uid = it)
-                        } ?: UserBody(email = email)
-
-                        fStoreUsers.document(email).set(newUser).addOnCompleteListener { addUser ->
-                            if (addUser.isSuccessful) {
-                                Log.d("me_addUsers", "SUCCESS--->${addUser.isComplete}")
-                                trySend(RequestState.Successful(signUp.isComplete && addUser.isComplete))
-                            } else {
-                                Log.d("me_addUsers", "ERROR--->${addUser.exception}")
-                                addUser.exception?.message?.let {
-                                    trySend(RequestState.Failure(it))
-                                } ?: RequestState.Failure("Unable to save user data...")
-                            }
-
-                        }
-                    }
-                    else -> {
-                        Log.d("me_signUp", "ERROR--->${signUp.exception}")
-                        signUp.exception?.message?.let {
-                            trySend(RequestState.Failure(it))
-                        } ?: RequestState.Failure("Error While Signing Up...")
-
-                    }
-                }
+            try {
+                val tokenReg = FirebaseMessaging.getInstance().token.await()
+                val tokenList = listOf(tokenReg)
+                val signUp = fAuth.createUserWithEmailAndPassword(email, password).await()
+                val newUser = signUp.user?.uid?.let {
+                    UserBody(email = email, uid = it, deviceToken = tokenList)
+                } ?: UserBody(email = email, deviceToken = tokenList)
+                fStoreUsers.document(email).set(newUser).await()
+                trySend(RequestState.Successful(true))
+                Log.d("me_addUsers", "SUCCESS ALl TRANSACTION COMPLETED")
+            }catch (e:Exception){
+             trySend(RequestState.Failure("$e"))
+                Log.d("me_addUsers", "ERROR--->$e")
             }
             awaitClose()
         }

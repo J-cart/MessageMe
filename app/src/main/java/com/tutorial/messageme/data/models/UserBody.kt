@@ -14,5 +14,6 @@ data class UserBody(
     val displayImg:String = "",
     val userStatus:String = "",
     val dob:String = "",
-    val gender:String = ""
+    val gender:String = "",
+    val deviceToken: List<String> = emptyList()
 ):Parcelable
