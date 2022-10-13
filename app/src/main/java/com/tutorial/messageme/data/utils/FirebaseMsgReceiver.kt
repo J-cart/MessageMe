@@ -17,8 +17,13 @@ import com.google.firebase.ktx.Firebase
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
 import com.tutorial.messageme.R
+import com.tutorial.messageme.data.arch.ChatsRepository
 import com.tutorial.messageme.data.models.UserBody
 import com.tutorial.messageme.ui.MainActivity
+import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.*
+import kotlinx.coroutines.tasks.await
+import javax.inject.Inject
 
 @JvmField
 val VERBOSE_NOTIFICATION_CHANNEL_NAME: CharSequence =
@@ -32,14 +37,19 @@ const val CHANNEL_ID = "VERBOSE_NOTIFICATION"
 
 private val fStoreUsers = Firebase.firestore.collection(USERS)
 
-
+@AndroidEntryPoint
 class FirebaseMsgReceiver : FirebaseMessagingService() {
+
+    @Inject
+    lateinit var repository:ChatsRepository
+
+   private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     override fun onMessageReceived(message: RemoteMessage) {
         super.onMessageReceived(message)
 
         //TODO ...FIX..1 notification gets sent whether or not the user is logged in
-        //TODO ...FIX..2 find a way to add pending intent for FCM default notification
-       // makeStatusNotification(message.data.toString(), this)
+        // FIX..2 find a way to add pending intent for FCM default notification
+         makeStatusNotification(message.data.toString(), this)
         Log.d("CLOUD_MSG", "${message.data}")
         Log.d("CLOUD_MSG", "messageType ${message.data["messageType"]}")
     }
@@ -47,10 +57,28 @@ class FirebaseMsgReceiver : FirebaseMessagingService() {
     override fun onNewToken(token: String) {
         super.onNewToken(token)
         updateToken(token)
+/*
+        scope.launch {
+            try {
+                val msgToken = FirebaseMessaging.getInstance().token.await()
+                updateToken(msgToken)
+                withContext(Dispatchers.Main){
+                    this@FirebaseMsgReceiver.showToast("Token Update Successful(FCM-Instance(try-catch))")
+                }
+                Log.d("me_updateToken","Token Update Successful(FCM-Instance(try-catch))" )
+            }catch (e:Exception){
+                Log.d("me_updateToken","Token Update Successful(FCM-Instance(try-catch))" )
+                withContext(Dispatchers.Main){
+                    this@FirebaseMsgReceiver.showToast("Token Update FAILED {$e} (FCM-Instance(try-catch))")
+                }
+            }
+        }
+*/
+        //repository.updateToken(token)
     }
 
 
-    private fun updateToken(token: String) {
+  private fun updateToken(token: String) {
         Firebase.auth.currentUser?.let { currentUser ->
             currentUser.email?.let { email ->
                 fStoreUsers.document(email).get().addOnCompleteListener { taskBody ->
@@ -65,7 +93,7 @@ class FirebaseMsgReceiver : FirebaseMessagingService() {
                                         if (it.isSuccessful) {
                                             this.showToast("Token Updated Successfully")
                                             Log.d("me_updateToken", " ${it.result}")
-                                        }else{
+                                        } else {
                                             this.showToast("Error:Token Not Updated:->${it.exception}")
                                             Log.d("me_updateToken", " ${it.exception}")
                                         }
@@ -81,6 +109,39 @@ class FirebaseMsgReceiver : FirebaseMessagingService() {
                 }
             }
         }
+    }
+
+    private fun suspendUpdate(token: String) {
+        scope.launch {
+            try {
+                Firebase.auth.currentUser?.let { currentUser ->
+                    currentUser.email?.let { email ->
+                        val usersDoc = fStoreUsers.document(email).get().await()
+                        usersDoc.toObject<UserBody>()?.let { userBody ->
+                            val tokenList = mutableListOf<String>()
+                            tokenList.addAll(userBody.deviceToken)
+                            tokenList.add(token)
+                            fStoreUsers.document(email).update("deviceToken", tokenList).await()
+                        }
+
+                    }
+                }
+                withContext(Dispatchers.Main) {
+                    this@FirebaseMsgReceiver.showToast("Token Updated Successfully")
+                    Log.d("me_updateToken", " Token Update Successful")
+                }
+
+
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    this@FirebaseMsgReceiver.showToast("Error:Token Not Updated:->$e")
+                    Log.d("me_updateToken", " $e")
+                }
+
+            }
+
+        }
+
     }
 
 

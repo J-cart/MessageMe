@@ -11,8 +11,7 @@ import com.google.gson.Gson
 import com.tutorial.messageme.data.models.*
 import com.tutorial.messageme.data.utils.*
 import kotlinx.coroutines.channels.awaitClose
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.tasks.await
 import okhttp3.Call
 import okhttp3.Callback
@@ -31,7 +30,9 @@ class ChatsRepositoryImpl : ChatsRepository {
     private val fStoreUsers = Firebase.firestore.collection(USERS)
     private val fStoreMsg = Firebase.firestore.collection(MESSAGES)
     private val fStoreReq = Firebase.firestore.collection(FRIEND_REQUEST)
-
+    private val _tokenUpdateFlow = MutableStateFlow<RequestState>(RequestState.NonExistent)
+    override val tokenUpdateFlow: StateFlow<RequestState>
+        get() = _tokenUpdateFlow.asStateFlow()
 
     override fun signUpNew(email: String, password: String): Flow<RequestState> {
         return callbackFlow {
@@ -45,8 +46,8 @@ class ChatsRepositoryImpl : ChatsRepository {
                 fStoreUsers.document(email).set(newUser).await()
                 trySend(RequestState.Successful(true))
                 Log.d("me_addUsers", "SUCCESS ALl TRANSACTION COMPLETED")
-            }catch (e:Exception){
-             trySend(RequestState.Failure("$e"))
+            } catch (e: Exception) {
+                trySend(RequestState.Failure("$e"))
                 Log.d("me_addUsers", "ERROR--->$e")
             }
             awaitClose()
@@ -181,7 +182,7 @@ class ChatsRepositoryImpl : ChatsRepository {
 
     override fun sendMessage(
         currentUserUid: String,
-        otherUser:UserBody,
+        otherUser: UserBody,
         message: ChatMessage
     ): Flow<RequestState> {
         return callbackFlow {
@@ -201,7 +202,7 @@ class ChatsRepositoryImpl : ChatsRepository {
                 batch.set(otherMsgRef, message)
                 batch.set(lstMsgRefCur, curMsgBody)
                 batch.set(lstMsgRefOther, otherMsgBody)
-                someMoreStuffs(message,otherUser)
+                someMoreStuffs(message, otherUser)
             }.addOnCompleteListener { task ->
                 if (task.isSuccessful) {
                     trySend(RequestState.Successful(task.isComplete))
@@ -590,7 +591,7 @@ class ChatsRepositoryImpl : ChatsRepository {
         }
     }
 
-    private fun someMoreStuffs(chatMessage: ChatMessage,otherUser: UserBody) {
+    private fun someMoreStuffs(chatMessage: ChatMessage, otherUser: UserBody) {
         val body = Gson().toJson(chatMessage)
 
         val jsonObj = JSONObject()
@@ -642,6 +643,40 @@ class ChatsRepositoryImpl : ChatsRepository {
 
     }
 
+
+   override fun updateToken(token: String) {
+        Firebase.auth.currentUser?.let { currentUser ->
+            currentUser.email?.let { email ->
+                fStoreUsers.document(email).get().addOnCompleteListener { taskBody ->
+                    when {
+                        taskBody.isSuccessful -> {
+                            taskBody.result.toObject<UserBody>()?.let { userBody ->
+                                val tokenList = mutableListOf<String>()
+                                tokenList.addAll(userBody.deviceToken)
+                                tokenList.add(token)
+                                fStoreUsers.document(email).update("deviceToken", tokenList)
+                                    .addOnCompleteListener {
+                                        if (it.isSuccessful) {
+                                            _tokenUpdateFlow.value = RequestState.Successful(true)
+                                            Log.d("me_updateToken", " ${it.result}")
+                                        } else {
+                                            _tokenUpdateFlow.value =
+                                                RequestState.Failure(it.exception.toString())
+                                            Log.d("me_updateToken", " ${it.exception}")
+                                        }
+                                    }
+                            }
+                        }
+                        else -> {
+                            _tokenUpdateFlow.value =
+                                RequestState.Failure(taskBody.exception.toString())
+                            Log.d("me_updateToken", " ${taskBody.exception}")
+                        }
+                    }
+                }
+            }
+        }
+    }
 
 
 }

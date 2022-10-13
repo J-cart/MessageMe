@@ -1,6 +1,7 @@
 package com.tutorial.messageme.ui
 
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -11,12 +12,12 @@ import androidx.navigation.fragment.navArgs
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.ktx.Firebase
+import com.google.firebase.messaging.FirebaseMessaging
 import com.tutorial.messageme.data.arch.ChatsViewModel
 import com.tutorial.messageme.data.models.ChatMessage
+import com.tutorial.messageme.data.models.PushNotifierBody
 import com.tutorial.messageme.data.models.UserBody
-import com.tutorial.messageme.data.utils.ChatsAdapter
-import com.tutorial.messageme.data.utils.Resource
-import com.tutorial.messageme.data.utils.TYPE_TEXT
+import com.tutorial.messageme.data.utils.*
 import com.tutorial.messageme.databinding.FragmentChatsBinding
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
@@ -71,8 +72,9 @@ class ChatsFragment : Fragment() {
             timeStamp = System.currentTimeMillis().toString()
         )
 
-        viewModel.sendMsg(currentUser, otherUser, msg)
-        binding.msgBox.text.clear()
+        addStuffs(msg)
+//        viewModel.sendMsg(currentUser, otherUser, msg)
+//        binding.msgBox.text.clear()
 
     }
 
@@ -97,4 +99,58 @@ class ChatsFragment : Fragment() {
         }
 
     }
+
+    private fun addStuffs(chatMessage: ChatMessage) {
+        FirebaseMessaging.getInstance().token.addOnCompleteListener { task ->
+            if (task.isSuccessful) {
+                val header = HashMap<String, String>()
+                header["Content-Type"] = "application/json"
+                header["Authorization"] = WEB_KEY
+
+                lifecycleScope.launch {
+
+                    val pushMsg = PushNotifierBody(task.result, chatMessage)
+                    try {
+                       val req = ApiService.retrofitApiService.sendMsgPush(header, pushMsg)
+                        if (req.isSuccessful) {
+                            Log.d("FCM test", "${req.raw()}, ${req.message()}, ${req.body()}")
+                        } else {
+                            Log.d("FCM test", " error ${req.errorBody()},body: ${req.body()},message : ${req.message()}")
+                        }
+                    } catch (e: Exception) {
+                        Log.d("FCM test", "error:: $e, ${e.localizedMessage}, ${e.stackTrace}")
+                    }
+                }
+            }
+        }
+
+
+/*
+        chatsArgs.otherUser?.let { otherUser->
+            val header = HashMap<String, String>()
+            header["Content-Type"] = "application/json"
+            header["Authorization"] = WEB_KEY
+
+            lifecycleScope.launch {
+
+                val pushMsg = PushNotifierBody(otherUser.deviceToken.last(), chatMessage)
+                try {
+                    val req = ApiService.retrofitApiService.sendMsgPush(header, pushMsg)
+                    if (req.isSuccessful) {
+                        Log.d("FCM test", "${req.body()}")
+                    } else {
+                        Log.d("FCM test", " error ${req.errorBody()}")
+                    }
+                } catch (e: Exception) {
+                    Log.d("FCM test", "error $e")
+                }
+
+            }
+        }
+*/
+
+
+    }
+
+
 }

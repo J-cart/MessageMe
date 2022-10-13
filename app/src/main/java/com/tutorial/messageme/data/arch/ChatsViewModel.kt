@@ -10,8 +10,10 @@ import com.google.firebase.ktx.Firebase
 import com.tutorial.messageme.data.models.*
 import com.tutorial.messageme.data.utils.*
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -56,7 +58,8 @@ class ChatsViewModel @Inject constructor(private val repository: ChatsRepository
         MutableStateFlow<Resource<List<RequestBodyWrapper>>>(Resource.Loading())
     val allRecReqFlow = _allRecReqFlow.asStateFlow()
 
-
+    private val _tokenUpdateEvent = Channel<RequestState>()
+    val tokenUpdateEvent = _tokenUpdateEvent.receiveAsFlow()
 
     //region REPOSITORY
 
@@ -449,6 +452,28 @@ class ChatsViewModel @Inject constructor(private val repository: ChatsRepository
                     }
                     else -> Unit
                 }
+            }
+        }
+    }
+
+    fun observeTokenUpdate(){
+        viewModelScope.launch {
+            repository.tokenUpdateFlow.collect{state->
+                when(state){
+                    is RequestState.NonExistent->{
+                        _tokenUpdateEvent.send(RequestState.NonExistent)
+                    }
+                    is RequestState.Successful->{
+                        _tokenUpdateEvent.send(RequestState.Successful(true))
+                    }
+                    is RequestState.Loading->{
+                        _tokenUpdateEvent.send(RequestState.Loading)
+                    }
+                    is RequestState.Failure->{
+                        _tokenUpdateEvent.send(RequestState.Failure(state.msg))
+                    }
+                }
+
             }
         }
     }

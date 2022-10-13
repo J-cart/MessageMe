@@ -21,6 +21,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var navController: NavController
     private lateinit var binding:ActivityMainBinding
     private lateinit var appBarConfiguration: AppBarConfiguration
+   // private val viewModel by viewModels<ChatsViewModel>()
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
@@ -50,6 +51,29 @@ class MainActivity : AppCompatActivity() {
 
         setupActionBarWithNavController(navController,appBarConfiguration)
         binding.bottomNav.setupWithNavController(navController)
+
+/*
+        lifecycleScope.launch {
+           viewModel.tokenUpdateEvent.collect{state->
+                when(state){
+                    is RequestState.NonExistent->{
+                        //Do Nothing
+                    }
+                    is RequestState.Successful->{
+                        this@MainActivity.showToast("Token Update Successful")
+                    }
+                    is RequestState.Loading->{
+                        this@MainActivity.showToast("Token Update LOADING")
+                    }
+                    is RequestState.Failure->{
+                        this@MainActivity.showToast("ERROR--> Token Update FAILED: ${state.msg}")
+                    }
+                }
+
+            }
+        }
+*/
+
     }
 
     override fun onNewIntent(intent: Intent?) {

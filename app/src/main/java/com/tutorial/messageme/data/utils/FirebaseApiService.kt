@@ -2,7 +2,6 @@ package com.tutorial.messageme.data.utils
 
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
-import com.squareup.okhttp.ResponseBody
 import com.tutorial.messageme.data.models.ChatMessage
 import com.tutorial.messageme.data.models.PushNotifierBody
 import okhttp3.OkHttpClient
@@ -15,20 +14,19 @@ import retrofit2.http.HeaderMap
 import retrofit2.http.POST
 
 interface FirebasePushNotifier{
-    @POST(BASE_URL)
+    @POST("send")
    suspend fun sendMsgPush(
         @HeaderMap headers:Map<String,String>,
         @Body data:PushNotifierBody<ChatMessage>,
-    ):Response<ResponseBody>
+    ):Response<Any>
 }
 
 
-private const val BASE_URL = "https://fcm.googleapis.com/fcm/send/"
+private const val BASE_URL = "https://fcm.googleapis.com/fcm/"
 
 private val moshi =  Moshi.Builder().add(KotlinJsonAdapterFactory()).build()
 
 private val retrofit = Retrofit.Builder()
-    .client(getOkHttp())
     .addConverterFactory(GsonConverterFactory.create())//MoshiConverterFactory.create(moshi)
     .baseUrl(BASE_URL)
     .build()
