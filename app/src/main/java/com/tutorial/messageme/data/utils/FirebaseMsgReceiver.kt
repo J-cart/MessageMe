@@ -57,7 +57,7 @@ class FirebaseMsgReceiver : FirebaseMessagingService() {
     override fun onNewToken(token: String) {
         super.onNewToken(token)
         updateToken(token)
-/*
+       /*
         scope.launch {
             try {
                 val msgToken = FirebaseMessaging.getInstance().token.await()
@@ -178,7 +178,7 @@ class FirebaseMsgReceiver : FirebaseMessagingService() {
             .setContentTitle(NOTIFICATION_TITLE)
             .setContentText(message)
             .setAutoCancel(true)
-            //.setContentIntent(pendingIntent)
+            .setContentIntent(pendingIntent)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setVibrate(LongArray(0))
 

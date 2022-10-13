@@ -79,7 +79,7 @@ class MainActivity : AppCompatActivity() {
     override fun onNewIntent(intent: Intent?) {
         super.onNewIntent(intent)
         if (intent?.action == VIEW_CHAT){
-            navController.navigate(R.id.recentChatsFragment)
+            navController.navigate(R.id.loginFragment)
         }
 
     }
