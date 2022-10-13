@@ -108,15 +108,9 @@ class ChatsFragment : Fragment() {
                 header["Authorization"] = WEB_KEY
 
                 lifecycleScope.launch {
-
                     val pushMsg = PushNotifierBody(task.result, chatMessage)
                     try {
-                       val req = ApiService.retrofitApiService.sendMsgPush(header, pushMsg)
-                        if (req.isSuccessful) {
-                            Log.d("FCM test", "${req.raw()}, ${req.message()}, ${req.body()}")
-                        } else {
-                            Log.d("FCM test", " error ${req.errorBody()},body: ${req.body()},message : ${req.message()}")
-                        }
+                        ApiService.retrofitApiService.sendMsgPush(header, pushMsg)
                     } catch (e: Exception) {
                         Log.d("FCM test", "error:: $e, ${e.localizedMessage}, ${e.stackTrace}")
                     }

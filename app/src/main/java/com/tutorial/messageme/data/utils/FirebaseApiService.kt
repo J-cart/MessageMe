@@ -27,6 +27,7 @@ private const val BASE_URL = "https://fcm.googleapis.com/fcm/"
 private val moshi =  Moshi.Builder().add(KotlinJsonAdapterFactory()).build()
 
 private val retrofit = Retrofit.Builder()
+    .client(getOkHttp())
     .addConverterFactory(GsonConverterFactory.create())//MoshiConverterFactory.create(moshi)
     .baseUrl(BASE_URL)
     .build()
@@ -43,22 +44,3 @@ fun getOkHttp(): OkHttpClient {
     return OkHttpClient.Builder().addInterceptor(logger).build()
 }
 
-/*GSON
-      @Singleton
-      @Provides
-      fun getOkHttp(): OkHttpClient {
-          val logger = HttpLoggingInterceptor()
-          logger.level = HttpLoggingInterceptor.Level.BASIC
-          return OkHttpClient.Builder().addInterceptor(logger).build()
-      }
-
-      @Singleton
-      @Provides
-      fun getRetrofit(http: OkHttpClient): CurrencyApiService =
-          Retrofit.Builder()
-              .client(http)
-              .baseUrl(BASE_URL)
-              .addConverterFactory(GsonConverterFactory.create())
-              .build()
-              .create(CurrencyApiService::class.java)
-  */
